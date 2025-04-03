@@ -25,7 +25,7 @@ def get_users():
         return format_response(filtered_data)
     except Exception as e:
         logger.error(f"Error getting users: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['GET'])
 def get_user(user_id):
@@ -34,10 +34,22 @@ def get_user(user_id):
         user = next((u for u in users_data if u['id'] == user_id), None)
         if user:
             return format_response(user)
-        return format_error("User not found"), 404
+        return format_error("User not found", status_code=404)
     except Exception as e:
         logger.error(f"Error getting user {user_id}: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
+        
+@users_bp.route('/uuid/<string:user_uuid>', methods=['GET'])
+def get_user_by_uuid(user_uuid):
+    """Get a specific user by UUID"""
+    try:
+        user = next((u for u in users_data if u.get('uuid', '') == user_uuid), None)
+        if user:
+            return format_response(user)
+        return format_error("User not found", status_code=404)
+    except Exception as e:
+        logger.error(f"Error getting user by UUID {user_uuid}: {str(e)}")
+        return format_error(str(e), status_code=500)
 
 @users_bp.route('/', methods=['POST'])
 def create_user():
@@ -45,13 +57,13 @@ def create_user():
     try:
         data = request.json
         if not data:
-            return format_error("Invalid request data"), 400
+            return format_error("Invalid request data", status_code=400)
             
         # Validate required fields
         required_fields = ['email', 'username', 'status']
         for field in required_fields:
             if field not in data:
-                return format_error(f"Missing required field: {field}"), 400
+                return format_error(f"Missing required field: {field}", status_code=400)
                 
         # Generate new ID
         new_id = max([u['id'] for u in users_data], default=0) + 1
@@ -72,7 +84,7 @@ def create_user():
         return format_response(new_user, status_code=201)
     except Exception as e:
         logger.error(f"Error creating user: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
@@ -80,12 +92,12 @@ def update_user(user_id):
     try:
         data = request.json
         if not data:
-            return format_error("Invalid request data"), 400
+            return format_error("Invalid request data", status_code=400)
             
         # Find user
         user_index = next((i for i, u in enumerate(users_data) if u['id'] == user_id), None)
         if user_index is None:
-            return format_error("User not found"), 404
+            return format_error("User not found", status_code=404)
             
         # Update fields
         current_user = users_data[user_index]
@@ -99,7 +111,7 @@ def update_user(user_id):
         return format_response(current_user)
     except Exception as e:
         logger.error(f"Error updating user {user_id}: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
@@ -108,7 +120,7 @@ def delete_user(user_id):
         # Find user
         user_index = next((i for i, u in enumerate(users_data) if u['id'] == user_id), None)
         if user_index is None:
-            return format_error("User not found"), 404
+            return format_error("User not found", status_code=404)
             
         # Remove user
         deleted_user = users_data.pop(user_index)
@@ -116,7 +128,7 @@ def delete_user(user_id):
         return format_response({"message": "User deleted successfully", "id": user_id})
     except Exception as e:
         logger.error(f"Error deleting user {user_id}: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
 
 @users_bp.route('/stats', methods=['GET'])
 def get_user_stats():
@@ -126,7 +138,7 @@ def get_user_stats():
         return format_response(user_activity_data)
     except Exception as e:
         logger.error(f"Error getting user stats: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
 
 @users_bp.route('/activity', methods=['GET'])
 def get_user_activity():
@@ -149,4 +161,4 @@ def get_user_activity():
         return format_response(filtered_data)
     except Exception as e:
         logger.error(f"Error getting user activity: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)

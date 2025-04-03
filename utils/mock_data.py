@@ -42,43 +42,73 @@ def generate_leagues():
     leagues = [
         {
             "id": 1,
-            "name": "Baltimore Orioles",
-            "category": "Baseball",
-            "country": "USA",
-            "logo_url": "https://www.mlbstatic.com/team-logos/110.svg",
-            "popularity": 5000
-        },
-        {
-            "id": 2,
             "name": "Major League Baseball",
             "category": "Baseball",
             "country": "USA",
             "logo_url": "https://www.mlbstatic.com/mlb-logos/league-on-dark/logo-primary-on-dark.svg",
-            "popularity": 4800
+            "popularity": 5000,
+            "founded_date": datetime(1876, 2, 2),
+            "headquarters": "New York City, USA",
+            "commissioner": "Rob Manfred (as of 2025)",
+            "divisions": ["American League", "National League"],
+            "num_teams": 12,
+            "enabled": True
         },
         {
-            "id": 3,
+            "id": 2,
             "name": "National Basketball Association",
             "category": "Basketball",
             "country": "USA",
             "logo_url": "https://cdn.nba.com/logos/leagues/logo-nba.svg",
-            "popularity": 4500
+            "popularity": 4800,
+            "founded_date": datetime(1949, 8, 3),
+            "headquarters": "New York City, USA",
+            "commissioner": "Adam Silver (as of 2025)",
+            "divisions": ["Eastern Conference", "Western Conference"],
+            "num_teams": 12,
+            "enabled": True
         },
         {
-            "id": 4,
+            "id": 3,
             "name": "National Football League",
             "category": "Football",
             "country": "USA",
             "logo_url": "https://static.www.nfl.com/image/upload/v1554321393/league/nvfr7ogywskqrfaiu38m.svg",
-            "popularity": 4200
+            "popularity": 4500,
+            "founded_date": datetime(1920, 8, 20),
+            "headquarters": "345 Park Avenue, New York City, NY, USA",
+            "commissioner": "Roger Goodell (as of 2025)",
+            "divisions": ["NORTH", "SOUTH", "EAST", "WEST"],
+            "num_teams": 12,
+            "enabled": True
+        },
+        {
+            "id": 4,
+            "name": "UEFA Champions League",
+            "category": "Soccer",
+            "country": "Europe",
+            "logo_url": "https://upload.wikimedia.org/wikipedia/en/thumb/9/9a/UEFA_Champions_League_logo.svg/120px-UEFA_Champions_League_logo.svg.png",
+            "popularity": 4200,
+            "founded_date": datetime(1955, 1, 1),
+            "headquarters": "Nyon, Switzerland",
+            "commissioner": "Aleksander Čeferin",
+            "divisions": ["Europe"],
+            "num_teams": 12,
+            "enabled": True
         },
         {
             "id": 5,
-            "name": "Premier League",
-            "category": "Soccer",
-            "country": "UK",
-            "logo_url": "https://resources.premierleague.com/premierleague/badges/rbPremierLeague.svg",
-            "popularity": 3900
+            "name": "2025 Australian Open",
+            "category": "Tennis",
+            "country": "Australia",
+            "logo_url": "https://en.wikipedia.org/wiki/File:Australian_Open_logo.svg",
+            "popularity": 3900,
+            "founded_date": datetime(2025, 1, 6),
+            "headquarters": "Melbourne, Victoria, Australia",
+            "commissioner": "Grand Slam",
+            "divisions": ["Melbourne Park"],
+            "num_teams": 12,
+            "enabled": True
         }
     ]
     
@@ -89,7 +119,13 @@ def generate_leagues():
             category=league_data["category"],
             country=league_data["country"],
             logo_url=league_data["logo_url"],
-            popularity=league_data["popularity"]
+            popularity=league_data["popularity"],
+            founded_date=league_data["founded_date"],
+            headquarters=league_data["headquarters"],
+            commissioner=league_data["commissioner"],
+            divisions=league_data["divisions"],
+            num_teams=league_data["num_teams"],
+            enabled=league_data["enabled"]
         )
         leagues_data.append(league)
     
@@ -149,8 +185,37 @@ def generate_teams():
 
 def generate_users():
     """Generate mock user data"""
-    # Generate ~2500 users
-    for i in range(1, 2501):
+    # List of realistic names for our sample users
+    first_names = ["Theresa", "Savannah", "Darlene", "Jackson", "Michelle", "Kenzi", "Robert", "James", "Emma", "Olivia"]
+    last_names = ["Webb", "Nguyen", "Robertson", "Graham", "Rivera", "Lawson", "Smith", "Johnson", "Williams", "Brown"]
+    
+    # Generate ~40 named users first with more detailed data
+    named_users = []
+    for i in range(1, 41):
+        status = random.choice(["active", "inactive", "suspended"])
+        registration_date = datetime.now() - timedelta(days=random.randint(1, 500))
+        last_login = registration_date + timedelta(days=random.randint(0, (datetime.now() - registration_date).days))
+        
+        first_name = random.choice(first_names)
+        last_name = random.choice(last_names)
+        full_name = f"{first_name} {last_name}"
+        user_name = first_name.lower() + last_name.lower()
+        email = f"{first_name.lower()}.{last_name.lower()}@example.com"
+        
+        user = User.create_record(
+            id=i,
+            email=email,
+            username=user_name,
+            full_name=full_name,
+            registration_date=registration_date,
+            last_login=last_login,
+            status=status,
+            uuid=f"user-{i}-{user_name}-uuid"
+        )
+        named_users.append(user)
+    
+    # Then generate the rest up to 2500 total
+    for i in range(41, 2501):
         status = random.choice(["active", "inactive", "suspended"])
         registration_date = datetime.now() - timedelta(days=random.randint(1, 500))
         last_login = registration_date + timedelta(days=random.randint(0, (datetime.now() - registration_date).days))
@@ -163,7 +228,10 @@ def generate_users():
             last_login=last_login,
             status=status
         )
-        users_data.append(user)
+        named_users.append(user)
+    
+    # Update the global users_data list
+    users_data.extend(named_users)
     
     logger.info(f"Generated {len(users_data)} users")
 

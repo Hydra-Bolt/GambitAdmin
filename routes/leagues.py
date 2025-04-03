@@ -104,6 +104,27 @@ def update_league(league_id):
         logger.error(f"Error updating league {league_id}: {str(e)}")
         return format_error(str(e)), 500
 
+@leagues_bp.route('/<int:league_id>/toggle', methods=['PUT'])
+def toggle_league_status(league_id):
+    """Toggle league enabled/disabled status"""
+    try:
+        # Find league
+        league_index = next((i for i, l in enumerate(leagues_data) if l['id'] == league_id), None)
+        if league_index is None:
+            return format_error("League not found"), 404
+            
+        # Toggle the enabled status
+        current_league = leagues_data[league_index]
+        current_league['enabled'] = not current_league.get('enabled', True)
+                
+        # Update timestamp
+        current_league['updated_at'] = datetime.now().isoformat()
+        
+        return format_response(current_league)
+    except Exception as e:
+        logger.error(f"Error toggling league status {league_id}: {str(e)}")
+        return format_error(str(e)), 500
+
 @leagues_bp.route('/<int:league_id>', methods=['DELETE'])
 def delete_league(league_id):
     """Delete a league"""

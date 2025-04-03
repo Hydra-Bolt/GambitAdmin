@@ -32,11 +32,15 @@ class User:
     @staticmethod
     def create_record(id: int, email: str, username: str, 
                       registration_date: datetime, last_login: datetime, 
-                      status: str) -> Dict[str, Any]:
+                      status: str, profile_image: str = "", 
+                      full_name: str = "", uuid: str = "") -> Dict[str, Any]:
         return {
             "id": id,
+            "uuid": uuid or f"user-{id}-uuid",  # In a real system, this would be a proper UUID
             "email": email,
             "username": username,
+            "full_name": full_name or username,  # Use full name if provided, otherwise username
+            "profile_image": profile_image or f"https://ui-avatars.com/api/?name={username}&background=random",
             "registration_date": registration_date.isoformat(),
             "last_login": last_login.isoformat(),
             "status": status,  # active, inactive, suspended
@@ -47,7 +51,11 @@ class User:
 class League:
     @staticmethod
     def create_record(id: int, name: str, category: str, 
-                      country: str, logo_url: str, popularity: int) -> Dict[str, Any]:
+                      country: str, logo_url: str, popularity: int,
+                      founded_date: datetime = datetime(1900, 1, 1), 
+                      headquarters: str = "", commissioner: str = "",
+                      divisions: List[str] = [], num_teams: int = 0, 
+                      enabled: bool = True) -> Dict[str, Any]:
         return {
             "id": id,
             "name": name,
@@ -55,6 +63,12 @@ class League:
             "country": country,
             "logo_url": logo_url,
             "popularity": popularity,  # view count or rating
+            "founded_date": founded_date.isoformat() if founded_date else datetime(1900, 1, 1).isoformat(),
+            "headquarters": headquarters or "",
+            "commissioner": commissioner or "",
+            "divisions": divisions or [],
+            "num_teams": num_teams,
+            "enabled": enabled,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }

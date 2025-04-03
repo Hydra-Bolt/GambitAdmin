@@ -28,8 +28,12 @@ app.register_blueprint(leagues_bp, url_prefix='/api/leagues')
 app.register_blueprint(teams_bp, url_prefix='/api/teams')
 app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 
-# Add Swagger documentation route
+# Add routes for documentation
 from flask import render_template
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/api/docs')
 def api_docs():
