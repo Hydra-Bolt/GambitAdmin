@@ -52,7 +52,7 @@ app.register_blueprint(teams_bp, url_prefix='/api/teams')
 app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 app.register_blueprint(players_bp, url_prefix='/api/players')
 app.register_blueprint(reels_bp, url_prefix='/api/reels')
-app.register_blueprint(notifications_bp, url_prefix='/api')
+app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(content_bp, url_prefix='/api/content')
 
 # Add routes for documentation

@@ -8,7 +8,7 @@ from sqlalchemy import or_
 
 notifications_bp = Blueprint('notifications', __name__)
 
-@notifications_bp.route('/notifications', methods=['GET'])
+@notifications_bp.route('/', methods=['GET'])
 def get_notifications():
     """Get all notifications with optional filtering"""
     target_type = request.args.get('target_type')
@@ -39,7 +39,7 @@ def get_notifications():
     return format_response(notification_list)
 
 
-@notifications_bp.route('/notifications/<int:notification_id>', methods=['GET'])
+@notifications_bp.route('/<int:notification_id>', methods=['GET'])
 def get_notification(notification_id):
     """Get a specific notification by ID"""
     notification = NotificationModel.query.get(notification_id)
@@ -50,7 +50,7 @@ def get_notification(notification_id):
     return format_response(notification.to_dict())
 
 
-@notifications_bp.route('/notifications', methods=['POST'])
+@notifications_bp.route('/', methods=['POST'])
 def create_notification():
     """Create a new notification"""
     data = request.json
@@ -90,7 +90,7 @@ def create_notification():
     return format_response(new_notification.to_dict(), status_code=201)
 
 
-@notifications_bp.route('/notifications/<int:notification_id>', methods=['PUT'])
+@notifications_bp.route('/<int:notification_id>', methods=['PUT'])
 def update_notification(notification_id):
     """Update an existing notification"""
     notification = NotificationModel.query.get(notification_id)
@@ -129,7 +129,7 @@ def update_notification(notification_id):
     return format_response(notification.to_dict())
 
 
-@notifications_bp.route('/notifications/<int:notification_id>', methods=['DELETE'])
+@notifications_bp.route('/<int:notification_id>', methods=['DELETE'])
 def delete_notification(notification_id):
     """Delete a notification"""
     notification = NotificationModel.query.get(notification_id)
@@ -150,7 +150,7 @@ def delete_notification(notification_id):
     })
 
 
-@notifications_bp.route('/notifications/<int:notification_id>/send', methods=['POST'])
+@notifications_bp.route('/<int:notification_id>/send', methods=['POST'])
 def send_notification(notification_id):
     """Send a notification (mark it as sent)"""
     notification = NotificationModel.query.get(notification_id)
