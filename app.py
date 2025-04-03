@@ -43,6 +43,7 @@ from routes.dashboard import dashboard_bp
 from routes.players import players_bp
 from routes.reels import reels_bp
 from routes.notifications import notifications_bp
+from routes.content import content_bp
 
 app.register_blueprint(subscribers_bp, url_prefix='/api/subscribers')
 app.register_blueprint(users_bp, url_prefix='/api/users')
@@ -52,6 +53,7 @@ app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 app.register_blueprint(players_bp, url_prefix='/api/players')
 app.register_blueprint(reels_bp, url_prefix='/api/reels')
 app.register_blueprint(notifications_bp, url_prefix='/api')
+app.register_blueprint(content_bp, url_prefix='/api/content')
 
 # Add routes for documentation
 from flask import render_template

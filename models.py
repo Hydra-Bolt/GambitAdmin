@@ -435,3 +435,80 @@ class Notification:
             "created_at": created_at.isoformat() if created_at else now.isoformat(),
             "updated_at": now.isoformat()
         }
+
+# Content Management Models
+class FAQModel(db.Model):
+    __tablename__ = 'faqs'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    order: Mapped[int] = mapped_column(Integer, default=0)  # For controlling display order
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "question": self.question,
+            "answer": self.answer,
+            "order": self.order,
+            "is_published": self.is_published,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class ContentPageModel(db.Model):
+    __tablename__ = 'content_pages'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    page_type: Mapped[str] = mapped_column(String(50), nullable=False)  # privacy_policy, terms_conditions
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "page_type": self.page_type,
+            "title": self.title,
+            "content": self.content,
+            "is_published": self.is_published,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+# In-memory data for content management
+faqs_data: List[Dict[str, Any]] = []
+content_pages_data: List[Dict[str, Any]] = []
+
+class FAQ:
+    @staticmethod
+    def create_record(id: int, question: str, answer: str, order: int = 0, 
+                     is_published: bool = True) -> Dict[str, Any]:
+        return {
+            "id": id,
+            "question": question,
+            "answer": answer,
+            "order": order,
+            "is_published": is_published,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+
+class ContentPage:
+    @staticmethod
+    def create_record(id: int, page_type: str, title: str, content: str,
+                     is_published: bool = True) -> Dict[str, Any]:
+        return {
+            "id": id,
+            "page_type": page_type,  # privacy_policy, terms_conditions
+            "title": title,
+            "content": content,
+            "is_published": is_published,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }

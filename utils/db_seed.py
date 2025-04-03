@@ -8,9 +8,9 @@ from app import db
 from models import (
     NotificationModel, subscribers_data, users_data, leagues_data, 
     teams_data, players_data, reels_data, user_activity_data, 
-    notifications_data, SubscriberModel, UserModel, LeagueModel, 
-    TeamModel, PlayerModel, ReelModel, UserActivityModel, 
-    SubscriberStatsModel
+    notifications_data, faqs_data, content_pages_data,
+    SubscriberModel, UserModel, LeagueModel, TeamModel, PlayerModel, 
+    ReelModel, UserActivityModel, SubscriberStatsModel, FAQModel, ContentPageModel
 )
 
 # Configure logger
@@ -27,6 +27,8 @@ def seed_database():
         seed_subscribers()
         seed_user_activity()
         seed_notifications()
+        seed_faqs()
+        seed_content_pages()
         logger.info("Database seeded successfully")
     except Exception as e:
         logger.error(f"Error seeding database: {str(e)}")
@@ -323,3 +325,65 @@ def seed_user_activity():
     
     db.session.commit()
     logger.info(f"Seeded {len(user_activity_data)} user activity records")
+
+def seed_faqs():
+    """Seed FAQ data into the database"""
+    # Check if we have FAQs in the database already
+    if db.session.query(FAQModel).count() > 0:
+        logger.info("FAQs table already has data, skipping seeding")
+        return
+    
+    logger.info("Seeding FAQs table...")
+    
+    # Convert in-memory FAQs to database models
+    for faq_data in faqs_data:
+        try:
+            # Parse ISO format dates
+            created_at = datetime.fromisoformat(faq_data["created_at"])
+            updated_at = datetime.fromisoformat(faq_data["updated_at"])
+            
+            faq = FAQModel(
+                question=faq_data["question"],
+                answer=faq_data["answer"],
+                order=faq_data["order"],
+                is_published=faq_data["is_published"],
+                created_at=created_at,
+                updated_at=updated_at
+            )
+            db.session.add(faq)
+        except Exception as e:
+            logger.error(f"Error adding FAQ: {str(e)}")
+    
+    db.session.commit()
+    logger.info(f"Seeded {len(faqs_data)} FAQs")
+
+def seed_content_pages():
+    """Seed content pages data into the database"""
+    # Check if we have content pages in the database already
+    if db.session.query(ContentPageModel).count() > 0:
+        logger.info("Content pages table already has data, skipping seeding")
+        return
+    
+    logger.info("Seeding content pages table...")
+    
+    # Convert in-memory content pages to database models
+    for page_data in content_pages_data:
+        try:
+            # Parse ISO format dates
+            created_at = datetime.fromisoformat(page_data["created_at"])
+            updated_at = datetime.fromisoformat(page_data["updated_at"])
+            
+            page = ContentPageModel(
+                page_type=page_data["page_type"],
+                title=page_data["title"],
+                content=page_data["content"],
+                is_published=page_data["is_published"],
+                created_at=created_at,
+                updated_at=updated_at
+            )
+            db.session.add(page)
+        except Exception as e:
+            logger.error(f"Error adding content page: {str(e)}")
+    
+    db.session.commit()
+    logger.info(f"Seeded {len(content_pages_data)} content pages")

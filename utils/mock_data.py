@@ -3,8 +3,9 @@ import logging
 from datetime import datetime, timedelta
 from models import (
     subscribers_data, users_data, leagues_data, teams_data, user_activity_data,
-    players_data, reels_data, notifications_data, Subscriber, User, League, Team, 
-    Player, Reel, Notification, UserActivity, SubscriberStats
+    players_data, reels_data, notifications_data, faqs_data, content_pages_data,
+    Subscriber, User, League, Team, Player, Reel, Notification, UserActivity, 
+    SubscriberStats, FAQ, ContentPage
 )
 
 # Configure logger
@@ -23,6 +24,8 @@ def initialize_mock_data():
     reels_data.clear()
     user_activity_data.clear()
     notifications_data.clear()
+    faqs_data.clear()
+    content_pages_data.clear()
     
     # Generate leagues
     generate_leagues()
@@ -47,6 +50,10 @@ def initialize_mock_data():
     
     # Generate notifications
     generate_notifications()
+    
+    # Generate FAQs and content pages
+    generate_faqs()
+    generate_content_pages()
     
     logger.info("Mock data initialization complete.")
 
@@ -584,3 +591,102 @@ def generate_notifications():
         notifications_data.append(notification)
     
     logger.info(f"Generated {len(notifications_data)} notifications")
+
+def generate_faqs():
+    """Generate mock FAQ data"""
+    faqs = [
+        {
+            "id": 1,
+            "question": "What is the difference between full truckload (FTL) and less-than-truckload (LTL) shipping?",
+            "answer": "Full Truckload (FTL) shipping is when the entire truck is dedicated to a single customer's shipment. It's typically used for larger shipments that can fill the entire trailer. FTL offers faster delivery times and is more cost-effective for large, heavy shipments. Less-than-Truckload (LTL) shipping is when a shipment only occupies part of the truck's space, and the truck carries goods from multiple customers. LTL is ideal for smaller shipments that don't require a full truck. It can be more affordable for businesses but may take longer due to multiple stops and handling.",
+            "order": 1,
+            "is_published": True
+        },
+        {
+            "id": 2,
+            "question": "How do I track my package?",
+            "answer": "You can track your package by logging into your account on our website and navigating to the 'Orders' section. Click on the order you want to track and select 'Track Package'. Alternatively, you can use the tracking number provided in your shipping confirmation email and enter it on our tracking page.",
+            "order": 2,
+            "is_published": True
+        },
+        {
+            "id": 3,
+            "question": "What payment methods do you accept?",
+            "answer": "We accept all major credit cards including Visa, MasterCard, American Express, and Discover. We also accept PayPal, Apple Pay, and Google Pay for online transactions. For corporate accounts, we offer options for purchase orders and direct invoicing.",
+            "order": 3,
+            "is_published": True
+        },
+        {
+            "id": 4,
+            "question": "How can I contact customer support?",
+            "answer": "Our customer support team is available Monday through Friday from 8:00 AM to 8:00 PM EST. You can reach us by phone at 1-800-555-0100, by email at support@example.com, or through the live chat feature on our website. For urgent matters outside of business hours, please use our emergency hotline at 1-800-555-0199.",
+            "order": 4,
+            "is_published": True
+        },
+        {
+            "id": 5,
+            "question": "What is your return policy?",
+            "answer": "We offer a 30-day return policy for most items. Products must be returned in their original packaging and in new, unused condition. Some restrictions apply to personalized items, perishable goods, and digital downloads. Shipping costs for returns are the responsibility of the customer unless the return is due to our error or a defective product.",
+            "order": 5,
+            "is_published": True
+        }
+    ]
+    
+    for faq_data in faqs:
+        faq = FAQ.create_record(
+            id=faq_data["id"],
+            question=faq_data["question"],
+            answer=faq_data["answer"],
+            order=faq_data["order"],
+            is_published=faq_data["is_published"]
+        )
+        faqs_data.append(faq)
+    
+    logger.info(f"Generated {len(faqs_data)} FAQs")
+
+def generate_content_pages():
+    """Generate mock content pages data"""
+    pages = [
+        {
+            "id": 1,
+            "page_type": "privacy_policy",
+            "title": "Privacy Policy",
+            "content": """This is dummy copy. It is not meant to be read. It has been placed here solely to demonstrate the look and feel of finished, typeset text. Only for show. He who searches for meaning here will be sorely disappointed. These words are here to provide the reader with a basic impression of how actual text will appear in its final presentation. Think of them merely as actors on a paper stage, in a performance devoid of content yet rich in form. That being the case, there is really no point in your continuing to read them. After all, you have many other things you should be doing. Who's paying you to waste this time, anyway?
+
+This is dummy copy. It's Greek to you. Unless, of course, you're Greek, in which case, it really makes no sense. Why, you can't even read it! It is strictly for mock-ups. You may mock it up as strictly as you wish.
+
+Meaningless mock-up, mock turtle soup spilled on a mock turtle neck. Mach I Convertible copy. To kill a mockingbird, you need only force it to read this copy. This is Meaningless filler. (Elvis movies.) It is not meant to be a forum for value judgments nor a scholarly diatribe on how virtue should be measured. The whole point here (if such a claim can be made in an admittedly pointless paragraph) is that this is dummy copy. Real bullets explode with destructive intensity. Such is not the case with dummy bullets. In fact, they don't explode at all. Duds. Dull thuds. Dudley do-wrongs. And do-wrongs don't make a right. Why on earth are you still reading this? Haven't you realized it's just dummy copy? How many times must you be reminded that it's really not meant to be read? You're only wasting precious time. But be that as it may, you've got to throw in a short paragraph from time to time.
+
+It breaks up the intimidating blocks of text and makes the page more inviting to read, which is again ironic, considering this is dummy copy. It is not meant to be read. Someday this space will be occupied by real copy that is meant to be read. What other form of filler would dare be so politically incorrect? This is dummy copy. It is not meant to be read.
+
+This is dummy copy. It is not meant to be read. Accordingly, it is difficult to figure out when to end it. If this were real copy, it would have ended long ago, because, as we all know, no one reads body copy, and even fewer read body copy this long. But then, this is dummy copy. It is not meant to be read. Period.""",
+            "is_published": True
+        },
+        {
+            "id": 2,
+            "page_type": "terms_conditions",
+            "title": "Terms & Conditions",
+            "content": """This is dummy copy. It is not meant to be read. It has been placed here solely to demonstrate the look and feel of finished, typeset text. Only for show. He who searches for meaning here will be sorely disappointed. These words are here to provide the reader with a basic impression of how actual text will appear in its final presentation. Think of them merely as actors on a paper stage, in a performance devoid of content yet rich in form. That being the case, there is really no point in your continuing to read them. After all, you have many other things you should be doing. Who's paying you to waste this time, anyway?
+
+This is dummy copy. It's Greek to you. Unless, of course, you're Greek, in which case, it really makes no sense. Why, you can't even read it! It is strictly for mock-ups. You may mock it up as strictly as you wish.
+
+Meaningless mock-up, mock turtle soup spilled on a mock turtle neck. Mach I Convertible copy. To kill a mockingbird, you need only force it to read this copy. This is Meaningless filler. (Elvis movies.) It is not meant to be a forum for value judgments nor a scholarly diatribe on how virtue should be measured. The whole point here (if such a claim can be made in an admittedly pointless paragraph) is that this is dummy copy. Real bullets explode with destructive intensity. Such is not the case with dummy bullets. In fact, they don't explode at all. Duds. Dull thuds. Dudley do-wrongs. And do-wrongs don't make a right. Why on earth are you still reading this? Haven't you realized it's just dummy copy? How many times must you be reminded that it's really not meant to be read? You're only wasting precious time. But be that as it may, you've got to throw in a short paragraph from time to time.
+
+It breaks up the intimidating blocks of text and makes the page more inviting to read, which is again ironic, considering this is dummy copy. It is not meant to be read. Someday this space will be occupied by real copy that is meant to be read. What other form of filler would dare be so politically incorrect? This is dummy copy. It is not meant to be read.
+
+This is dummy copy. It is not meant to be read. Accordingly, it is difficult to figure out when to end it. If this were real copy, it would have ended long ago, because, as we all know, no one reads body copy, and even fewer read body copy this long. But then, this is dummy copy. It is not meant to be read. Period.""",
+            "is_published": True
+        }
+    ]
+    
+    for page_data in pages:
+        page = ContentPage.create_record(
+            id=page_data["id"],
+            page_type=page_data["page_type"],
+            title=page_data["title"],
+            content=page_data["content"],
+            is_published=page_data["is_published"]
+        )
+        content_pages_data.append(page)
+    
+    logger.info(f"Generated {len(content_pages_data)} content pages")

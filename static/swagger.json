@@ -31,6 +31,10 @@
     {
       "name": "dashboard",
       "description": "Dashboard data"
+    },
+    {
+      "name": "content",
+      "description": "Content management (FAQs, Privacy Policy, Terms & Conditions)"
     }
   ],
   "paths": {
@@ -397,6 +401,649 @@
           }
         }
       }
+    },
+    "/content/faqs": {
+      "get": {
+        "tags": ["content"],
+        "summary": "Get all FAQs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "is_published",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by publication status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FAQ"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["content"],
+        "summary": "Create a new FAQ",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FAQInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "FAQ created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FAQ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/faqs/{id}": {
+      "get": {
+        "tags": ["content"],
+        "summary": "Get FAQ by ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FAQ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "FAQ not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["content"],
+        "summary": "Update FAQ",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FAQInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "FAQ updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FAQ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "FAQ not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["content"],
+        "summary": "Partially update FAQ",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FAQPatchInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "FAQ updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FAQ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "FAQ not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["content"],
+        "summary": "Delete FAQ",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "FAQ deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "FAQ with ID 1 deleted successfully"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "FAQ not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/pages": {
+      "get": {
+        "tags": ["content"],
+        "summary": "Get all content pages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "is_published",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by publication status"
+          },
+          {
+            "in": "query",
+            "name": "page_type",
+            "schema": {
+              "type": "string",
+              "enum": ["privacy_policy", "terms_conditions"]
+            },
+            "description": "Filter by page type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ContentPage"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["content"],
+        "summary": "Create a new content page",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentPageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Content page created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentPage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/pages/{id}": {
+      "get": {
+        "tags": ["content"],
+        "summary": "Get content page by ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentPage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["content"],
+        "summary": "Update content page",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentPageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Content page updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentPage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["content"],
+        "summary": "Partially update content page",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentPagePatchInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Content page updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentPage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["content"],
+        "summary": "Delete content page",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content page deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Content page with ID 1 deleted successfully"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/pages/type/{type}": {
+      "get": {
+        "tags": ["content"],
+        "summary": "Get content page by type",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["privacy_policy", "terms_conditions"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentPage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content page not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -635,6 +1282,160 @@
                 "nullable": true
               }
             }
+          }
+        }
+      },
+      "FAQ": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "question": {
+            "type": "string",
+            "example": "What is the difference between full truckload (FTL) and less-than-truckload (LTL) shipping?"
+          },
+          "answer": {
+            "type": "string",
+            "example": "Full Truckload (FTL) shipping is when the entire truck is dedicated to a single customer's shipment. It's typically used for larger shipments that can fill the entire trailer..."
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "is_published": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-04-03T14:36:03.293651"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-04-03T14:36:03.293833"
+          }
+        }
+      },
+      "FAQInput": {
+        "type": "object",
+        "required": ["question", "answer"],
+        "properties": {
+          "question": {
+            "type": "string",
+            "example": "What is the difference between full truckload (FTL) and less-than-truckload (LTL) shipping?"
+          },
+          "answer": {
+            "type": "string",
+            "example": "Full Truckload (FTL) shipping is when the entire truck is dedicated to a single customer's shipment. It's typically used for larger shipments that can fill the entire trailer..."
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "is_published": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "FAQPatchInput": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "example": "What is the difference between full truckload (FTL) and less-than-truckload (LTL) shipping?"
+          },
+          "answer": {
+            "type": "string",
+            "example": "Full Truckload (FTL) shipping is when the entire truck is dedicated to a single customer's shipment. It's typically used for larger shipments that can fill the entire trailer..."
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "is_published": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ContentPage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_type": {
+            "type": "string",
+            "enum": ["privacy_policy", "terms_conditions"],
+            "example": "privacy_policy"
+          },
+          "title": {
+            "type": "string",
+            "example": "Privacy Policy"
+          },
+          "content": {
+            "type": "string",
+            "example": "This Privacy Policy describes how we collect, use, and handle your personal information..."
+          },
+          "is_published": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-04-03T14:36:03.293651"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-04-03T14:36:03.293833"
+          }
+        }
+      },
+      "ContentPageInput": {
+        "type": "object",
+        "required": ["page_type", "title", "content"],
+        "properties": {
+          "page_type": {
+            "type": "string",
+            "enum": ["privacy_policy", "terms_conditions"],
+            "example": "privacy_policy"
+          },
+          "title": {
+            "type": "string",
+            "example": "Privacy Policy"
+          },
+          "content": {
+            "type": "string",
+            "example": "This Privacy Policy describes how we collect, use, and handle your personal information..."
+          },
+          "is_published": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ContentPagePatchInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Privacy Policy"
+          },
+          "content": {
+            "type": "string",
+            "example": "This Privacy Policy describes how we collect, use, and handle your personal information..."
+          },
+          "is_published": {
+            "type": "boolean",
+            "example": true
           }
         }
       }
