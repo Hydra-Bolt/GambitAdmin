@@ -1,20 +1,30 @@
+"""
+Response formatter utilities for the Gambit Admin API.
+Provides consistent response formatting across all endpoints.
+"""
+
 from flask import jsonify
 
-def format_response(data, status_code=200):
-    """Format API response in a consistent structure"""
+def format_response(data, message=None):
+    """Format a successful API response"""
     response = {
         "success": True,
         "data": data
     }
-    return jsonify(response), status_code
+    
+    if message:
+        response["message"] = message
+    
+    return jsonify(response)
 
-def format_error(message, details=None, status_code=400):
-    """Format API error response in a consistent structure"""
+def format_error(message, status_code=500, error_code=None):
+    """Format an error API response"""
     response = {
         "success": False,
-        "error": {
-            "message": message,
-            "details": details
-        }
+        "message": message
     }
+    
+    if error_code:
+        response["error_code"] = error_code
+    
     return jsonify(response), status_code

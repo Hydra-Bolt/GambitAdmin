@@ -1,9 +1,13 @@
 import os
 import logging
+from datetime import datetime, timedelta
+from functools import wraps
 
-from flask import Flask
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, current_user
+from flask_jwt_extended import JWTManager
 from sqlalchemy.orm import DeclarativeBase
 
 # Configure logging
@@ -28,11 +32,35 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# JWT configuration
+# Use a simple fixed key for development
+app.config["JWT_SECRET_KEY"] = "dev-key-123456"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # 1 hour
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)  # 30 days
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer"
+
 # Initialize the database with the app
 db.init_app(app)
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# Initialize Flask-JWT-Extended
+jwt = JWTManager(app)
+from utils.auth import register_jwt_error_handlers
+register_jwt_error_handlers(jwt)
+
 # Enable CORS for all routes
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# User loader callback for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    from models import AdminModel
+    return AdminModel.query.get(int(user_id))
 
 # Import and register routes
 from routes.subscribers import subscribers_bp
@@ -44,7 +72,16 @@ from routes.players import players_bp
 from routes.reels import reels_bp
 from routes.notifications import notifications_bp
 from routes.content import content_bp
+from routes.auth import auth_bp
+from routes.roles import roles_bp
+from routes.admins import admins_bp
 
+# Register authentication and admin blueprints
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(roles_bp, url_prefix='/api/roles')
+app.register_blueprint(admins_bp, url_prefix='/api/admins')
+
+# Register existing blueprints
 app.register_blueprint(subscribers_bp, url_prefix='/api/subscribers')
 app.register_blueprint(users_bp, url_prefix='/api/users')
 app.register_blueprint(leagues_bp, url_prefix='/api/leagues')

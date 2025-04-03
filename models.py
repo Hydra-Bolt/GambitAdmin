@@ -2,10 +2,13 @@
 # This file defines the SQLAlchemy models for the PostgreSQL database
 
 from datetime import datetime
+import uuid
+import bcrypt
 from typing import Dict, List, Any, Optional, Union
-from sqlalchemy import String, Integer, DateTime, Boolean, Float, ForeignKey, Text
+from sqlalchemy import String, Integer, DateTime, Boolean, Float, ForeignKey, Text, Table, Column
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from flask_login import UserMixin
 from app import db
 
 # Global variables to maintain backward compatibility during transition
@@ -17,6 +20,102 @@ players_data: List[Dict[str, Any]] = []
 reels_data: List[Dict[str, Any]] = []
 user_activity_data: List[Dict[str, Any]] = []
 notifications_data: List[Dict[str, Any]] = []
+
+# Association table for admin-role many-to-many relationship
+admin_roles = Table('admin_roles',
+    db.Model.metadata,
+    Column('admin_id', Integer, ForeignKey('admins.id'), primary_key=True),
+    Column('role_id', Integer, ForeignKey('roles.id'), primary_key=True)
+)
+
+# Define role permissions
+class PermissionType:
+    CONTENT = "content"
+    NOTIFICATION = "notification"
+    LEAGUES = "leagues"
+    REELS = "reels"
+    USERS = "users"
+    SUBSCRIBERS = "subscribers"
+    ROLES = "roles"
+    ALL = "all"
+
+# Admin user model
+class AdminModel(db.Model, UserMixin):
+    __tablename__ = 'admins'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_login: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationship with roles
+    roles = relationship('RoleModel', secondary=admin_roles, backref='admins')
+    
+    def set_password(self, password):
+        """Hash the password for storage"""
+        password_bytes = password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        self.password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+    
+    def check_password(self, password):
+        """Check if provided password matches the stored hash"""
+        password_bytes = password.encode('utf-8')
+        hash_bytes = self.password_hash.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hash_bytes)
+    
+    def has_permission(self, permission):
+        """Check if admin has a specific permission"""
+        # Super admin has all permissions
+        if any(role.has_permission(PermissionType.ALL) for role in self.roles):
+            return True
+        
+        # Check specific permission
+        return any(role.has_permission(permission) for role in self.roles)
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'name': self.name,
+            'email': self.email,
+            'is_active': self.is_active,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'roles': [role.to_dict() for role in self.roles],
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+
+# Role model
+class RoleModel(db.Model):
+    __tablename__ = 'roles'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(String(255), nullable=True)
+    permissions: Mapped[List[str]] = mapped_column(ARRAY(String), default=[])
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def has_permission(self, permission):
+        """Check if role has specific permission"""
+        return PermissionType.ALL in self.permissions or permission in self.permissions
+    
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'permissions': self.permissions,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
 
 # SQLAlchemy Models
 class SubscriberModel(db.Model):

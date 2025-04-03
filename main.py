@@ -23,6 +23,14 @@ with app.app_context():
         from utils.db_seed import seed_database
         seed_database()
         logger.info("Database seeded successfully")
+        
+        # Seed admin users and roles
+        from utils.admin_seed import seed_admin_users
+        admin_seeded = seed_admin_users()
+        if admin_seeded:
+            logger.info("Admin users and roles seeded successfully")
+        else:
+            logger.info("Admin users and roles already exist")
     except Exception as e:
         logger.error(f"Error seeding database: {str(e)}")
 
