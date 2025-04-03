@@ -63,8 +63,20 @@
                                 <span class="badge bg-primary rounded-pill">Get league by ID</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>PUT /api/leagues/{id}/toggle</span>
+                                <span>POST /api/leagues/</span>
+                                <span class="badge bg-success rounded-pill">Create new league</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>PUT /api/leagues/{id}</span>
+                                <span class="badge bg-success rounded-pill">Update league</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>PATCH /api/leagues/{id}/toggle-status</span>
                                 <span class="badge bg-success rounded-pill">Toggle league status</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>DELETE /api/leagues/{id}</span>
+                                <span class="badge bg-success rounded-pill">Delete league</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>GET /api/leagues/popular</span>
@@ -81,6 +93,18 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>GET /api/teams/{id}</span>
                                 <span class="badge bg-primary rounded-pill">Get team by ID</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>POST /api/teams/</span>
+                                <span class="badge bg-success rounded-pill">Create new team</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>PUT /api/teams/{id}</span>
+                                <span class="badge bg-success rounded-pill">Update team</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>DELETE /api/teams/{id}</span>
+                                <span class="badge bg-success rounded-pill">Delete team</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>GET /api/teams/popular</span>
@@ -119,7 +143,7 @@
                                 <span class="badge bg-success rounded-pill">Get popular reels</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>GET /api/reels/manage</span>
+                                <span>GET /api/reels/with-player-details</span>
                                 <span class="badge bg-success rounded-pill">Get reels with player details</span>
                             </li>
                         </ul>
@@ -180,6 +204,34 @@
                             </li>
                         </ul>
 
+                        <h4 class="mt-3">Notifications</h4>
+                        <ul class="list-group mb-3">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>GET /api/notifications</span>
+                                <span class="badge bg-success rounded-pill">Get all notifications</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>GET /api/notifications/{id}</span>
+                                <span class="badge bg-success rounded-pill">Get notification by ID</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>POST /api/notifications</span>
+                                <span class="badge bg-success rounded-pill">Create new notification</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>PUT /api/notifications/{id}</span>
+                                <span class="badge bg-success rounded-pill">Update notification</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>DELETE /api/notifications/{id}</span>
+                                <span class="badge bg-success rounded-pill">Delete notification</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>POST /api/notifications/{id}/send</span>
+                                <span class="badge bg-success rounded-pill">Send notification</span>
+                            </li>
+                        </ul>
+
                         <h4 class="mt-3">Subscribers</h4>
                         <ul class="list-group mb-3">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -189,6 +241,18 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>GET /api/subscribers/{id}</span>
                                 <span class="badge bg-primary rounded-pill">Get subscriber by ID</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>POST /api/subscribers/</span>
+                                <span class="badge bg-success rounded-pill">Create new subscriber</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>PUT /api/subscribers/{id}</span>
+                                <span class="badge bg-success rounded-pill">Update subscriber</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>DELETE /api/subscribers/{id}</span>
+                                <span class="badge bg-success rounded-pill">Delete subscriber</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>GET /api/subscribers/stats</span>

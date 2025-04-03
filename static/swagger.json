@@ -29,6 +29,18 @@
       "description": "Teams management"
     },
     {
+      "name": "players",
+      "description": "Players management"
+    },
+    {
+      "name": "reels",
+      "description": "Reels management"
+    },
+    {
+      "name": "notifications",
+      "description": "Notifications management"
+    },
+    {
       "name": "dashboard",
       "description": "Dashboard data"
     },
