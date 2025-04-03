@@ -3,7 +3,8 @@ import logging
 from datetime import datetime, timedelta
 from models import (
     subscribers_data, users_data, leagues_data, teams_data, user_activity_data,
-    Subscriber, User, League, Team, UserActivity, SubscriberStats
+    players_data, reels_data, Subscriber, User, League, Team, Player, Reel, 
+    UserActivity, SubscriberStats
 )
 
 # Configure logger
@@ -18,6 +19,8 @@ def initialize_mock_data():
     users_data.clear()
     leagues_data.clear()
     teams_data.clear()
+    players_data.clear()
+    reels_data.clear()
     user_activity_data.clear()
     
     # Generate leagues
@@ -25,6 +28,12 @@ def initialize_mock_data():
     
     # Generate teams
     generate_teams()
+    
+    # Generate players
+    generate_players()
+    
+    # Generate reels
+    generate_reels()
     
     # Generate users
     generate_users()
@@ -267,6 +276,192 @@ def generate_subscribers():
         subscribers_data.append(subscriber)
     
     logger.info(f"Generated {len(subscribers_data)} subscribers")
+
+def generate_players():
+    """Generate mock player data"""
+    players = [
+        {
+            "id": 1,
+            "name": "Keegan Akin",
+            "team_id": 1,  # Baltimore Orioles
+            "league_id": 1,  # MLB
+            "position": "Relief Pitcher",
+            "jersey_number": "#45",
+            "profile_image": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669211/headshot/67/current",
+            "dob": datetime(1995, 4, 1),
+            "college": "Western Michigan",
+            "height_weight": "6' 0\", 240 lbs",
+            "bat_throw": "Left/Left",
+            "experience": "5th Season",
+            "birthplace": "Alma, MI",
+            "status": "Active"
+        },
+        {
+            "id": 2,
+            "name": "Josh Allen",
+            "team_id": 4,  # Kansas City Chiefs (using as Buffalo Bills for now)
+            "league_id": 3,  # NFL
+            "position": "Quarterback",
+            "jersey_number": "#17",
+            "profile_image": "https://static.www.nfl.com/image/private/t_player_profile_landscape_2x/f_auto/league/yncfgwfk6xhobkoq7msh",
+            "dob": datetime(1996, 5, 21),
+            "college": "Wyoming",
+            "height_weight": "6' 5\", 237 lbs",
+            "bat_throw": "Right",
+            "experience": "7th Season",
+            "birthplace": "Firebaugh, CA",
+            "status": "Active"
+        },
+        {
+            "id": 3,
+            "name": "LeBron James",
+            "team_id": 3,  # Los Angeles Lakers
+            "league_id": 2,  # NBA
+            "position": "Forward",
+            "jersey_number": "#23",
+            "profile_image": "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png",
+            "dob": datetime(1984, 12, 30),
+            "college": "St. Vincent-St. Mary HS (OH)",
+            "height_weight": "6' 9\", 250 lbs",
+            "bat_throw": "Right",
+            "experience": "22nd Season",
+            "birthplace": "Akron, OH",
+            "status": "Active"
+        },
+        {
+            "id": 4,
+            "name": "Aaron Judge",
+            "team_id": 2,  # New York Yankees
+            "league_id": 1,  # MLB
+            "position": "Right Fielder",
+            "jersey_number": "#99",
+            "profile_image": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592450/headshot/67/current",
+            "dob": datetime(1992, 4, 26),
+            "college": "Fresno State",
+            "height_weight": "6' 7\", 282 lbs",
+            "bat_throw": "Right/Right",
+            "experience": "9th Season",
+            "birthplace": "Sacramento, CA",
+            "status": "Active"
+        },
+        {
+            "id": 5,
+            "name": "Cristiano Ronaldo",
+            "team_id": 5,  # Manchester United
+            "league_id": 4,  # Soccer
+            "position": "Forward",
+            "jersey_number": "#7",
+            "profile_image": "https://www.marca.com/assets/multimedia/imagenes/2023/01/07/16730854736270.jpg",
+            "dob": datetime(1985, 2, 5),
+            "college": "",
+            "height_weight": "6' 2\", 183 lbs",
+            "bat_throw": "Right",
+            "experience": "21st Season",
+            "birthplace": "Funchal, Madeira, Portugal",
+            "status": "Active"
+        }
+    ]
+    
+    for player_data in players:
+        player = Player.create_record(
+            id=player_data["id"],
+            name=player_data["name"],
+            team_id=player_data["team_id"],
+            league_id=player_data["league_id"],
+            position=player_data["position"],
+            jersey_number=player_data["jersey_number"],
+            profile_image=player_data["profile_image"],
+            dob=player_data["dob"],
+            college=player_data["college"],
+            height_weight=player_data["height_weight"],
+            bat_throw=player_data["bat_throw"],
+            experience=player_data["experience"],
+            birthplace=player_data["birthplace"],
+            status=player_data["status"]
+        )
+        players_data.append(player)
+    
+    logger.info(f"Generated {len(players_data)} players")
+
+def generate_reels():
+    """Generate mock reel data"""
+    reels = [
+        {
+            "id": 1,
+            "player_id": 1,  # Keegan Akin
+            "title": "Which NBA draft class has the most championships since 2003?",
+            "thumbnail_url": "https://img.mlbstatic.com/mlb-images/image/upload/t_16x9/t_w1024/mlb/atltbph3oaxaajpzj0rd",
+            "video_url": "https://www.mlb.com/video/keegan-akin-s-2023-season",
+            "duration": 50.0,
+            "view_count": 12500,
+            "created_at": datetime.now() - timedelta(days=5)
+        },
+        {
+            "id": 2,
+            "player_id": 1,  # Keegan Akin
+            "title": "Keegan Akin's best strikeouts of 2023",
+            "thumbnail_url": "https://img.mlbstatic.com/mlb-images/image/upload/t_16x9/t_w1024/mlb/xvlbsjevzehmgfuwhpkm",
+            "video_url": "https://www.mlb.com/video/keegan-akin-s-best-2023-k-s",
+            "duration": 50.0,
+            "view_count": 8750,
+            "created_at": datetime.now() - timedelta(days=12)
+        },
+        {
+            "id": 3,
+            "player_id": 1,  # Keegan Akin
+            "title": "Orioles Bullpen Dominance",
+            "thumbnail_url": "https://img.mlbstatic.com/mlb-images/image/upload/t_16x9/t_w1024/mlb/d41pzt63mwoc12vrdvdi",
+            "video_url": "https://www.mlb.com/video/orioles-bullpen-dominance",
+            "duration": 50.0,
+            "view_count": 10300,
+            "created_at": datetime.now() - timedelta(days=18)
+        },
+        {
+            "id": 4,
+            "player_id": 1,  # Keegan Akin
+            "title": "Camden Yards Atmosphere",
+            "thumbnail_url": "https://img.mlbstatic.com/mlb-images/image/upload/t_16x9/t_w1024/mlb/kvypl9l3fac15vaq6abf",
+            "video_url": "https://www.mlb.com/video/camden-yards-atmosphere",
+            "duration": 50.0,
+            "view_count": 9500,
+            "created_at": datetime.now() - timedelta(days=25)
+        },
+        {
+            "id": 5,
+            "player_id": 2,  # Josh Allen
+            "title": "Josh Allen's incredible 2023 plays",
+            "thumbnail_url": "https://static.www.nfl.com/image/private/t_editorial_landscape_12_desktop/league/tlgylwiana79dv66tqyc",
+            "video_url": "https://www.nfl.com/videos/josh-allen-s-top-plays-from-the-2023-season",
+            "duration": 45.0,
+            "view_count": 35800,
+            "created_at": datetime.now() - timedelta(days=8)
+        },
+        {
+            "id": 6,
+            "player_id": 3,  # LeBron James
+            "title": "LeBron James passes Kareem Abdul-Jabbar for most points in NBA history",
+            "thumbnail_url": "https://cdn.nba.com/manage/2023/02/GettyImages-1465891324-784x523.jpg",
+            "video_url": "https://www.nba.com/watch/video/lebron-james-breaks-kareem-abdul-jabbars-nba-scoring-record",
+            "duration": 120.0,
+            "view_count": 256000,
+            "created_at": datetime.now() - timedelta(days=30)
+        }
+    ]
+    
+    for reel_data in reels:
+        reel = Reel.create_record(
+            id=reel_data["id"],
+            player_id=reel_data["player_id"],
+            title=reel_data["title"],
+            thumbnail_url=reel_data["thumbnail_url"],
+            video_url=reel_data["video_url"],
+            duration=reel_data["duration"],
+            view_count=reel_data["view_count"],
+            created_at=reel_data["created_at"]
+        )
+        reels_data.append(reel)
+    
+    logger.info(f"Generated {len(reels_data)} reels")
 
 def generate_user_activity():
     """Generate mock user activity data for charting"""

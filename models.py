@@ -2,13 +2,15 @@
 # This file defines the data structures and provides access to the mock database
 
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 # Global variables to store data
 subscribers_data: List[Dict[str, Any]] = []
 users_data: List[Dict[str, Any]] = []
 leagues_data: List[Dict[str, Any]] = []
 teams_data: List[Dict[str, Any]] = []
+players_data: List[Dict[str, Any]] = []
+reels_data: List[Dict[str, Any]] = []
 user_activity_data: List[Dict[str, Any]] = []
 
 # Record structures
@@ -103,4 +105,50 @@ class SubscriberStats:
             "date": date.isoformat(),
             "monthly": monthly,
             "yearly": yearly
+        }
+
+class Player:
+    @staticmethod
+    def create_record(id: int, name: str, team_id: int, league_id: int, 
+                      position: str, jersey_number: str, profile_image: str,
+                      dob: Optional[datetime] = None, college: str = "", 
+                      height_weight: str = "", bat_throw: str = "",
+                      experience: str = "", birthplace: str = "", 
+                      status: str = "Active") -> Dict[str, Any]:
+        return {
+            "id": id,
+            "name": name,
+            "team_id": team_id,
+            "league_id": league_id,
+            "position": position,
+            "jersey_number": jersey_number,
+            "profile_image": profile_image,
+            "dob": dob.isoformat() if dob else "",
+            "college": college,
+            "height_weight": height_weight,
+            "bat_throw": bat_throw,
+            "experience": experience,
+            "birthplace": birthplace,
+            "status": status,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+
+class Reel:
+    @staticmethod
+    def create_record(id: int, player_id: int, title: str, 
+                      thumbnail_url: str, video_url: str, 
+                      duration: float, view_count: int = 0,
+                      created_at: Optional[datetime] = None) -> Dict[str, Any]:
+        now = datetime.now()
+        return {
+            "id": id,
+            "player_id": player_id,
+            "title": title,
+            "thumbnail_url": thumbnail_url,
+            "video_url": video_url,
+            "duration": duration,  # in seconds
+            "view_count": view_count,
+            "created_at": created_at.isoformat() if created_at else now.isoformat(),
+            "updated_at": now.isoformat()
         }
