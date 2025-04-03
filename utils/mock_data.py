@@ -3,8 +3,8 @@ import logging
 from datetime import datetime, timedelta
 from models import (
     subscribers_data, users_data, leagues_data, teams_data, user_activity_data,
-    players_data, reels_data, Subscriber, User, League, Team, Player, Reel, 
-    UserActivity, SubscriberStats
+    players_data, reels_data, notifications_data, Subscriber, User, League, Team, 
+    Player, Reel, Notification, UserActivity, SubscriberStats
 )
 
 # Configure logger
@@ -22,6 +22,7 @@ def initialize_mock_data():
     players_data.clear()
     reels_data.clear()
     user_activity_data.clear()
+    notifications_data.clear()
     
     # Generate leagues
     generate_leagues()
@@ -43,6 +44,9 @@ def initialize_mock_data():
     
     # Generate user activity
     generate_user_activity()
+    
+    # Generate notifications
+    generate_notifications()
     
     logger.info("Mock data initialization complete.")
 
@@ -498,3 +502,85 @@ def generate_user_activity():
     user_activity_data.sort(key=lambda x: x['date'])
     
     logger.info(f"Generated {len(user_activity_data)} days of user activity data")
+
+def generate_notifications():
+    """Generate mock notifications data"""
+    notifications = [
+        {
+            "id": 1,
+            "title": "Welcome to Gambit!",
+            "message": "Thank you for joining Gambit. Explore the latest sports content now!",
+            "destination_url": "/explore",
+            "image_url": "https://images.unsplash.com/photo-1552667466-07770ae110d0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+            "icon_url": "https://cdn-icons-png.flaticon.com/512/149/149417.png",
+            "target_type": "all",
+            "target_user_id": None,
+            "sent": True,
+            "created_at": datetime.now() - timedelta(days=30)
+        },
+        {
+            "id": 2,
+            "title": "New Content Available",
+            "message": "Check out the latest videos from your favorite players!",
+            "destination_url": "/reels",
+            "image_url": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+            "icon_url": "https://cdn-icons-png.flaticon.com/512/40/40082.png",
+            "target_type": "all",
+            "target_user_id": None,
+            "sent": True,
+            "created_at": datetime.now() - timedelta(days=15)
+        },
+        {
+            "id": 3,
+            "title": "Subscription Expiring Soon",
+            "message": "Your premium subscription will expire in 3 days. Renew now to avoid interruption.",
+            "destination_url": "/subscription/renew",
+            "image_url": "https://images.unsplash.com/photo-1586892478025-2b5472316ae4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+            "icon_url": "https://cdn-icons-png.flaticon.com/512/1006/1006771.png",
+            "target_type": "user",
+            "target_user_id": 1,
+            "sent": True,
+            "created_at": datetime.now() - timedelta(days=7)
+        },
+        {
+            "id": 4,
+            "title": "Special Offer",
+            "message": "Limited time offer: Get 20% off on annual subscription. Use code GAMBIT20",
+            "destination_url": "/offers/special",
+            "image_url": "https://images.unsplash.com/photo-1567427361984-0cbe7396fc4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+            "icon_url": "https://cdn-icons-png.flaticon.com/512/1244/1244662.png",
+            "target_type": "user",
+            "target_user_id": 2,
+            "sent": False,
+            "created_at": datetime.now() - timedelta(days=2)
+        },
+        {
+            "id": 5,
+            "title": "NBA Finals Coverage",
+            "message": "Watch exclusive NBA Finals coverage and highlights only on Gambit!",
+            "destination_url": "/nba/finals",
+            "image_url": "https://images.unsplash.com/photo-1544919982-4513755a9985?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+            "icon_url": "https://cdn-icons-png.flaticon.com/512/521/521250.png",
+            "target_type": "all",
+            "target_user_id": None,
+            "sent": False,
+            "created_at": datetime.now() - timedelta(hours=12)
+        }
+    ]
+    
+    for notification_data in notifications:
+        notification = Notification.create_record(
+            id=notification_data["id"],
+            title=notification_data["title"],
+            message=notification_data["message"],
+            destination_url=notification_data["destination_url"],
+            image_url=notification_data["image_url"],
+            icon_url=notification_data["icon_url"],
+            target_type=notification_data["target_type"],
+            target_user_id=notification_data["target_user_id"],
+            created_at=notification_data["created_at"],
+            sent=notification_data["sent"]
+        )
+        notifications_data.append(notification)
+    
+    logger.info(f"Generated {len(notifications_data)} notifications")

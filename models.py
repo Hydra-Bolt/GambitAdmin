@@ -1,10 +1,14 @@
-# In-memory data storage for MVP
-# This file defines the data structures and provides access to the mock database
+# Database models for the Gambit Admin API
+# This file defines the SQLAlchemy models for the PostgreSQL database
 
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
+from sqlalchemy import String, Integer, DateTime, Boolean, Float, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app import db
 
-# Global variables to store data
+# Global variables to maintain backward compatibility during transition
 subscribers_data: List[Dict[str, Any]] = []
 users_data: List[Dict[str, Any]] = []
 leagues_data: List[Dict[str, Any]] = []
@@ -12,6 +16,262 @@ teams_data: List[Dict[str, Any]] = []
 players_data: List[Dict[str, Any]] = []
 reels_data: List[Dict[str, Any]] = []
 user_activity_data: List[Dict[str, Any]] = []
+notifications_data: List[Dict[str, Any]] = []
+
+# SQLAlchemy Models
+class SubscriberModel(db.Model):
+    __tablename__ = 'subscribers'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    subscription_type: Mapped[str] = mapped_column(String(20), nullable=False)  # monthly, yearly
+    start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # active, expired, cancelled
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "name": self.name,
+            "subscription_type": self.subscription_type,
+            "start_date": self.start_date.isoformat(),
+            "end_date": self.end_date.isoformat(),
+            "status": self.status,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class UserModel(db.Model):
+    __tablename__ = 'users'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    uuid: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    full_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    profile_image: Mapped[str] = mapped_column(String(255), nullable=True)
+    registration_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    last_login: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # active, inactive, suspended
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "uuid": self.uuid,
+            "email": self.email,
+            "username": self.username,
+            "full_name": self.full_name,
+            "profile_image": self.profile_image,
+            "registration_date": self.registration_date.isoformat(),
+            "last_login": self.last_login.isoformat(),
+            "status": self.status,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class LeagueModel(db.Model):
+    __tablename__ = 'leagues'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)  # baseball, football, basketball, etc.
+    country: Mapped[str] = mapped_column(String(50), nullable=False)
+    logo_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    popularity: Mapped[int] = mapped_column(Integer, nullable=False)
+    founded_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    headquarters: Mapped[str] = mapped_column(String(120), nullable=True)
+    commissioner: Mapped[str] = mapped_column(String(120), nullable=True)
+    divisions: Mapped[List[str]] = mapped_column(ARRAY(String), nullable=True)
+    num_teams: Mapped[int] = mapped_column(Integer, default=0)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    teams = relationship("TeamModel", back_populates="league", cascade="all, delete-orphan")
+    players = relationship("PlayerModel", back_populates="league", cascade="all, delete-orphan")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "category": self.category,
+            "country": self.country,
+            "logo_url": self.logo_url,
+            "popularity": self.popularity,
+            "founded_date": self.founded_date.isoformat() if self.founded_date else None,
+            "headquarters": self.headquarters,
+            "commissioner": self.commissioner,
+            "divisions": self.divisions,
+            "num_teams": self.num_teams,
+            "enabled": self.enabled,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class TeamModel(db.Model):
+    __tablename__ = 'teams'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    league_id: Mapped[int] = mapped_column(Integer, ForeignKey('leagues.id'), nullable=False)
+    logo_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    popularity: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    league = relationship("LeagueModel", back_populates="teams")
+    players = relationship("PlayerModel", back_populates="team", cascade="all, delete-orphan")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "league_id": self.league_id,
+            "logo_url": self.logo_url,
+            "popularity": self.popularity,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class PlayerModel(db.Model):
+    __tablename__ = 'players'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    team_id: Mapped[int] = mapped_column(Integer, ForeignKey('teams.id'), nullable=False)
+    league_id: Mapped[int] = mapped_column(Integer, ForeignKey('leagues.id'), nullable=False)
+    position: Mapped[str] = mapped_column(String(50), nullable=False)
+    jersey_number: Mapped[str] = mapped_column(String(10), nullable=False)
+    profile_image: Mapped[str] = mapped_column(String(255), nullable=False)
+    dob: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    college: Mapped[str] = mapped_column(String(120), nullable=True)
+    height_weight: Mapped[str] = mapped_column(String(50), nullable=True)
+    bat_throw: Mapped[str] = mapped_column(String(20), nullable=True)
+    experience: Mapped[str] = mapped_column(String(50), nullable=True)
+    birthplace: Mapped[str] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="Active")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    team = relationship("TeamModel", back_populates="players")
+    league = relationship("LeagueModel", back_populates="players")
+    reels = relationship("ReelModel", back_populates="player", cascade="all, delete-orphan")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "team_id": self.team_id,
+            "league_id": self.league_id,
+            "position": self.position,
+            "jersey_number": self.jersey_number,
+            "profile_image": self.profile_image,
+            "dob": self.dob.isoformat() if self.dob else None,
+            "college": self.college,
+            "height_weight": self.height_weight,
+            "bat_throw": self.bat_throw,
+            "experience": self.experience,
+            "birthplace": self.birthplace,
+            "status": self.status,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class ReelModel(db.Model):
+    __tablename__ = 'reels'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[int] = mapped_column(Integer, ForeignKey('players.id'), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    thumbnail_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    video_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    duration: Mapped[float] = mapped_column(Float, nullable=False)
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    player = relationship("PlayerModel", back_populates="reels")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "player_id": self.player_id,
+            "title": self.title,
+            "thumbnail_url": self.thumbnail_url,
+            "video_url": self.video_url,
+            "duration": self.duration,
+            "view_count": self.view_count,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+class UserActivityModel(db.Model):
+    __tablename__ = 'user_activity'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    active_users: Mapped[int] = mapped_column(Integer, nullable=False)
+    new_users: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "date": self.date.isoformat(),
+            "active_users": self.active_users,
+            "new_users": self.new_users
+        }
+
+class SubscriberStatsModel(db.Model):
+    __tablename__ = 'subscriber_stats'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    monthly: Mapped[int] = mapped_column(Integer, nullable=False)
+    yearly: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "date": self.date.isoformat(),
+            "monthly": self.monthly,
+            "yearly": self.yearly
+        }
+
+class NotificationModel(db.Model):
+    __tablename__ = 'notifications'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    destination_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    image_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    icon_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    target_type: Mapped[str] = mapped_column(String(20), default="all")  # "all" or "user"
+    target_user_id: Mapped[int] = mapped_column(Integer, nullable=True)  # Only used if target_type is "user"
+    sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "message": self.message,
+            "destination_url": self.destination_url,
+            "image_url": self.image_url,
+            "icon_url": self.icon_url,
+            "target_type": self.target_type,
+            "target_user_id": self.target_user_id,
+            "sent": self.sent,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
 
 # Record structures
 class Subscriber:
@@ -149,6 +409,29 @@ class Reel:
             "video_url": video_url,
             "duration": duration,  # in seconds
             "view_count": view_count,
+            "created_at": created_at.isoformat() if created_at else now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+
+class Notification:
+    @staticmethod
+    def create_record(id: int, title: str, message: str, 
+                      destination_url: str, image_url: str = "", 
+                      icon_url: str = "", target_type: str = "all", 
+                      target_user_id: Optional[int] = None,
+                      created_at: Optional[datetime] = None,
+                      sent: bool = False) -> Dict[str, Any]:
+        now = datetime.now()
+        return {
+            "id": id,
+            "title": title,
+            "message": message,
+            "destination_url": destination_url,
+            "image_url": image_url,
+            "icon_url": icon_url,
+            "target_type": target_type,  # "all" or "user"
+            "target_user_id": target_user_id,  # Only used if target_type is "user"
+            "sent": sent,  # Whether the notification has been sent
             "created_at": created_at.isoformat() if created_at else now.isoformat(),
             "updated_at": now.isoformat()
         }

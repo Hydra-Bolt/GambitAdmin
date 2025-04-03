@@ -1,4 +1,32 @@
-from app import app
+import logging
+from app import app, db, logger
+
+# Configure app context for database operations
+with app.app_context():
+    # Import models
+    from models import (
+        SubscriberModel, UserModel, LeagueModel, TeamModel, 
+        PlayerModel, ReelModel, UserActivityModel, 
+        SubscriberStatsModel, NotificationModel
+    )
+    
+    # Create tables
+    db.create_all()
+    logger.info("Database tables created")
+    
+    # Initialize mock data
+    from utils.mock_data import initialize_mock_data
+    initialize_mock_data()
+    
+    try:
+        # Seed the database with mock data if tables are empty
+        from utils.db_seed import seed_database
+        seed_database()
+        logger.info("Database seeded successfully")
+    except Exception as e:
+        logger.error(f"Error seeding database: {str(e)}")
+
+logger.info("Gambit Admin API initialized")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

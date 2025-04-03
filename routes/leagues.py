@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 import logging
-from models import leagues_data
+from models import leagues_data, LeagueModel
 from datetime import datetime
 from utils.response_formatter import format_response, format_error
+from app import db
+from sqlalchemy import desc
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -17,15 +19,26 @@ def get_leagues():
         # Query parameters for filtering
         category = request.args.get('category')
         country = request.args.get('country')
+        enabled_only = request.args.get('enabled') == 'true'
+        
+        # Start with a query
+        query = LeagueModel.query
         
         # Apply filters if provided
-        filtered_data = leagues_data
         if category:
-            filtered_data = [l for l in filtered_data if l['category'] == category]
+            query = query.filter(LeagueModel.category.ilike(f"%{category}%"))
         if country:
-            filtered_data = [l for l in filtered_data if l['country'] == country]
+            query = query.filter(LeagueModel.country.ilike(f"%{country}%"))
+        if enabled_only:
+            query = query.filter(LeagueModel.enabled == True)
             
-        return format_response(filtered_data)
+        # Execute query
+        leagues = query.all()
+        
+        # Convert to dictionary representation
+        leagues_list = [league.to_dict() for league in leagues]
+            
+        return format_response(leagues_list)
     except Exception as e:
         logger.error(f"Error getting leagues: {str(e)}")
         return format_error(str(e)), 500
@@ -34,9 +47,9 @@ def get_leagues():
 def get_league(league_id):
     """Get a specific league by ID"""
     try:
-        league = next((l for l in leagues_data if l['id'] == league_id), None)
+        league = LeagueModel.query.get(league_id)
         if league:
-            return format_response(league)
+            return format_response(league.to_dict())
         return format_error("League not found"), 404
     except Exception as e:
         logger.error(f"Error getting league {league_id}: {str(e)}")
@@ -56,25 +69,37 @@ def create_league():
             if field not in data:
                 return format_error(f"Missing required field: {field}"), 400
                 
-        # Generate new ID
-        new_id = max([l['id'] for l in leagues_data], default=0) + 1
+        # Parse founded_date if provided
+        founded_date = None
+        if 'founded_date' in data and data['founded_date']:
+            try:
+                founded_date = datetime.fromisoformat(data['founded_date'])
+            except ValueError:
+                return format_error("Invalid date format for 'founded_date'. Use ISO format (YYYY-MM-DDTHH:MM:SS)"), 400
         
-        # Create new league
-        from models import League
-        
-        new_league = League.create_record(
-            id=new_id,
+        # Create new league using SQLAlchemy model
+        new_league = LeagueModel(
             name=data['name'],
             category=data['category'],
             country=data['country'],
             logo_url=data['logo_url'],
-            popularity=data.get('popularity', 0)
+            popularity=data.get('popularity', 0),
+            founded_date=founded_date,
+            headquarters=data.get('headquarters', ''),
+            commissioner=data.get('commissioner', ''),
+            divisions=data.get('divisions', []),
+            num_teams=data.get('num_teams', 0),
+            enabled=data.get('enabled', True)
         )
         
-        leagues_data.append(new_league)
-        return format_response(new_league, status_code=201)
+        # Add and commit to database
+        db.session.add(new_league)
+        db.session.commit()
+        
+        return format_response(new_league.to_dict(), status_code=201)
     except Exception as e:
         logger.error(f"Error creating league: {str(e)}")
+        db.session.rollback()
         return format_error(str(e)), 500
 
 @leagues_bp.route('/<int:league_id>', methods=['PUT'])
@@ -86,43 +111,53 @@ def update_league(league_id):
             return format_error("Invalid request data"), 400
             
         # Find league
-        league_index = next((i for i, l in enumerate(leagues_data) if l['id'] == league_id), None)
-        if league_index is None:
+        league = LeagueModel.query.get(league_id)
+        if league is None:
             return format_error("League not found"), 404
             
         # Update fields
-        current_league = leagues_data[league_index]
         for key, value in data.items():
-            if key in current_league and key != 'id':
-                current_league[key] = value
+            # Special handling for founded_date
+            if key == 'founded_date' and value:
+                try:
+                    league.founded_date = datetime.fromisoformat(value)
+                except ValueError:
+                    return format_error("Invalid date format for 'founded_date'. Use ISO format (YYYY-MM-DDTHH:MM:SS)"), 400
+            # Update other fields
+            elif key != 'id' and hasattr(league, key):
+                setattr(league, key, value)
                 
-        # Update timestamp
-        current_league['updated_at'] = datetime.now().isoformat()
+        # Commit changes to database
+        db.session.commit()
         
-        return format_response(current_league)
+        return format_response(league.to_dict())
     except Exception as e:
         logger.error(f"Error updating league {league_id}: {str(e)}")
+        db.session.rollback()
         return format_error(str(e)), 500
 
-@leagues_bp.route('/<int:league_id>/toggle', methods=['PUT'])
+@leagues_bp.route('/<int:league_id>/toggle-status', methods=['PATCH'])
 def toggle_league_status(league_id):
     """Toggle league enabled/disabled status"""
     try:
         # Find league
-        league_index = next((i for i, l in enumerate(leagues_data) if l['id'] == league_id), None)
-        if league_index is None:
+        league = LeagueModel.query.get(league_id)
+        if league is None:
             return format_error("League not found"), 404
             
         # Toggle the enabled status
-        current_league = leagues_data[league_index]
-        current_league['enabled'] = not current_league.get('enabled', True)
+        league.enabled = not league.enabled
                 
-        # Update timestamp
-        current_league['updated_at'] = datetime.now().isoformat()
+        # Commit changes to database
+        db.session.commit()
         
-        return format_response(current_league)
+        return format_response({
+            "message": f"League status toggled to {'enabled' if league.enabled else 'disabled'}",
+            "league": league.to_dict()
+        })
     except Exception as e:
         logger.error(f"Error toggling league status {league_id}: {str(e)}")
+        db.session.rollback()
         return format_error(str(e)), 500
 
 @leagues_bp.route('/<int:league_id>', methods=['DELETE'])
@@ -130,30 +165,42 @@ def delete_league(league_id):
     """Delete a league"""
     try:
         # Find league
-        league_index = next((i for i, l in enumerate(leagues_data) if l['id'] == league_id), None)
-        if league_index is None:
+        league = LeagueModel.query.get(league_id)
+        if league is None:
             return format_error("League not found"), 404
             
-        # Remove league
-        deleted_league = leagues_data.pop(league_index)
+        # Save league data before deletion
+        league_dict = league.to_dict()
         
-        return format_response({"message": "League deleted successfully", "id": league_id})
+        # Remove league from database
+        db.session.delete(league)
+        db.session.commit()
+        
+        return format_response({
+            "message": "League deleted successfully", 
+            "deleted": league_dict
+        })
     except Exception as e:
         logger.error(f"Error deleting league {league_id}: {str(e)}")
+        db.session.rollback()
         return format_error(str(e)), 500
 
 @leagues_bp.route('/popular', methods=['GET'])
 def get_popular_leagues():
     """Get most popular leagues"""
     try:
-        # Sort leagues by popularity
-        sorted_leagues = sorted(leagues_data, key=lambda x: x['popularity'], reverse=True)
-        
         # Limit to top N
         limit = request.args.get('limit', default=5, type=int)
-        top_leagues = sorted_leagues[:limit]
         
-        return format_response(top_leagues)
+        # Query popular leagues with SQLAlchemy
+        popular_leagues = LeagueModel.query.filter_by(enabled=True).order_by(
+            desc(LeagueModel.popularity)
+        ).limit(limit).all()
+        
+        # Convert to dictionary representation
+        popular_leagues_list = [league.to_dict() for league in popular_leagues]
+        
+        return format_response(popular_leagues_list)
     except Exception as e:
         logger.error(f"Error getting popular leagues: {str(e)}")
         return format_error(str(e)), 500

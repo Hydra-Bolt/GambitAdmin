@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
 import logging
-from models import users_data, user_activity_data
 from datetime import datetime
+from app import db
+from sqlalchemy import desc
+from models import UserModel, UserActivityModel
 from utils.response_formatter import format_response, format_error
 
 # Configure logger
@@ -17,12 +19,17 @@ def get_users():
         # Query parameters for filtering
         status = request.args.get('status')
         
+        # Base query
+        query = UserModel.query
+        
         # Apply filters if provided
-        filtered_data = users_data
         if status:
-            filtered_data = [u for u in filtered_data if u['status'] == status]
+            query = query.filter(UserModel.status == status)
             
-        return format_response(filtered_data)
+        # Execute query and convert to list of dictionaries
+        users = [user.to_dict() for user in query.all()]
+            
+        return format_response(users)
     except Exception as e:
         logger.error(f"Error getting users: {str(e)}")
         return format_error(str(e), status_code=500)
@@ -31,9 +38,9 @@ def get_users():
 def get_user(user_id):
     """Get a specific user by ID"""
     try:
-        user = next((u for u in users_data if u['id'] == user_id), None)
+        user = UserModel.query.get(user_id)
         if user:
-            return format_response(user)
+            return format_response(user.to_dict())
         return format_error("User not found", status_code=404)
     except Exception as e:
         logger.error(f"Error getting user {user_id}: {str(e)}")
@@ -43,9 +50,9 @@ def get_user(user_id):
 def get_user_by_uuid(user_uuid):
     """Get a specific user by UUID"""
     try:
-        user = next((u for u in users_data if u.get('uuid', '') == user_uuid), None)
+        user = UserModel.query.filter_by(uuid=user_uuid).first()
         if user:
-            return format_response(user)
+            return format_response(user.to_dict())
         return format_error("User not found", status_code=404)
     except Exception as e:
         logger.error(f"Error getting user by UUID {user_uuid}: {str(e)}")
@@ -60,30 +67,36 @@ def create_user():
             return format_error("Invalid request data", status_code=400)
             
         # Validate required fields
-        required_fields = ['email', 'username', 'status']
+        required_fields = ['email', 'username', 'status', 'full_name']
         for field in required_fields:
             if field not in data:
                 return format_error(f"Missing required field: {field}", status_code=400)
-                
-        # Generate new ID
-        new_id = max([u['id'] for u in users_data], default=0) + 1
         
-        # Create new user
-        from models import User
+        # Create a UUID if one wasn't provided
+        if 'uuid' not in data or not data['uuid']:
+            import uuid
+            data['uuid'] = f"user-{str(uuid.uuid4())}"
         
-        new_user = User.create_record(
-            id=new_id,
+        # Create new user object
+        new_user = UserModel(
             email=data['email'],
             username=data['username'],
+            uuid=data['uuid'],
+            full_name=data['full_name'],
+            profile_image=data.get('profile_image', f"https://ui-avatars.com/api/?name={data['username']}&background=random"),
             registration_date=datetime.now(),
             last_login=datetime.now(),
             status=data['status']
         )
         
-        users_data.append(new_user)
-        return format_response(new_user, status_code=201)
+        # Add to database
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return format_response(new_user.to_dict(), status_code=201)
     except Exception as e:
         logger.error(f"Error creating user: {str(e)}")
+        db.session.rollback()
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['PUT'])
@@ -95,22 +108,22 @@ def update_user(user_id):
             return format_error("Invalid request data", status_code=400)
             
         # Find user
-        user_index = next((i for i, u in enumerate(users_data) if u['id'] == user_id), None)
-        if user_index is None:
+        user = UserModel.query.get(user_id)
+        if not user:
             return format_error("User not found", status_code=404)
             
         # Update fields
-        current_user = users_data[user_index]
         for key, value in data.items():
-            if key in current_user and key != 'id':
-                current_user[key] = value
+            if hasattr(user, key) and key not in ['id', 'created_at', 'updated_at']:
+                setattr(user, key, value)
                 
-        # Update timestamp
-        current_user['updated_at'] = datetime.now().isoformat()
+        # Save to database
+        db.session.commit()
         
-        return format_response(current_user)
+        return format_response(user.to_dict())
     except Exception as e:
         logger.error(f"Error updating user {user_id}: {str(e)}")
+        db.session.rollback()
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['DELETE'])
@@ -118,24 +131,47 @@ def delete_user(user_id):
     """Delete a user"""
     try:
         # Find user
-        user_index = next((i for i, u in enumerate(users_data) if u['id'] == user_id), None)
-        if user_index is None:
+        user = UserModel.query.get(user_id)
+        if not user:
             return format_error("User not found", status_code=404)
-            
-        # Remove user
-        deleted_user = users_data.pop(user_index)
         
-        return format_response({"message": "User deleted successfully", "id": user_id})
+        # Save user data before deletion for response
+        user_dict = user.to_dict()
+            
+        # Remove from database
+        db.session.delete(user)
+        db.session.commit()
+        
+        return format_response({"message": "User deleted successfully", "user": user_dict})
     except Exception as e:
         logger.error(f"Error deleting user {user_id}: {str(e)}")
+        db.session.rollback()
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/stats', methods=['GET'])
 def get_user_stats():
     """Get user statistics"""
     try:
-        # Get stats from user activity data
-        return format_response(user_activity_data)
+        # Calculate user statistics
+        total_users = UserModel.query.count()
+        active_users = UserModel.query.filter_by(status='active').count()
+        inactive_users = UserModel.query.filter_by(status='inactive').count()
+        suspended_users = UserModel.query.filter_by(status='suspended').count()
+        
+        # Calculate recent registrations - users registered in the last 30 days
+        import datetime as dt
+        thirty_days_ago = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - dt.timedelta(days=30)
+        recent_users = UserModel.query.filter(UserModel.registration_date >= thirty_days_ago).count()
+        
+        # Format response
+        stats = {
+            "total_users": total_users,
+            "active_users": active_users,
+            "inactive_users": inactive_users,
+            "suspended_users": suspended_users,
+            "recent_registrations": recent_users
+        }
+        return format_response(stats)
     except Exception as e:
         logger.error(f"Error getting user stats: {str(e)}")
         return format_error(str(e), status_code=500)
@@ -148,17 +184,25 @@ def get_user_activity():
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        filtered_data = user_activity_data
+        # Base query
+        query = UserActivityModel.query
         
+        # Apply date filters if provided
         if start_date:
             start = datetime.fromisoformat(start_date)
-            filtered_data = [a for a in filtered_data if datetime.fromisoformat(a['date']) >= start]
+            query = query.filter(UserActivityModel.date >= start)
             
         if end_date:
             end = datetime.fromisoformat(end_date)
-            filtered_data = [a for a in filtered_data if datetime.fromisoformat(a['date']) <= end]
+            query = query.filter(UserActivityModel.date <= end)
         
-        return format_response(filtered_data)
+        # Order by date
+        query = query.order_by(UserActivityModel.date)
+        
+        # Execute query and convert to list of dictionaries
+        activity_data = [activity.to_dict() for activity in query.all()]
+        
+        return format_response(activity_data)
     except Exception as e:
         logger.error(f"Error getting user activity: {str(e)}")
         return format_error(str(e), status_code=500)
