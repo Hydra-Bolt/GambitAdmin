@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 import logging
-from models import leagues_data, LeagueModel
+from models import leagues_data, LeagueModel, PermissionType
 from datetime import datetime
 from utils.response_formatter import format_response, format_error
+from utils.auth import require_permission
+from flask_jwt_extended import jwt_required
 from app import db
 from sqlalchemy import desc
 
@@ -56,6 +58,8 @@ def get_league(league_id):
         return format_error(str(e)), 500
 
 @leagues_bp.route('/', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def create_league():
     """Create a new league"""
     try:
@@ -103,6 +107,8 @@ def create_league():
         return format_error(str(e)), 500
 
 @leagues_bp.route('/<int:league_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def update_league(league_id):
     """Update an existing league"""
     try:
@@ -137,6 +143,8 @@ def update_league(league_id):
         return format_error(str(e)), 500
 
 @leagues_bp.route('/<int:league_id>/toggle-status', methods=['PATCH'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def toggle_league_status(league_id):
     """Toggle league enabled/disabled status"""
     try:
@@ -161,6 +169,8 @@ def toggle_league_status(league_id):
         return format_error(str(e)), 500
 
 @leagues_bp.route('/<int:league_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def delete_league(league_id):
     """Delete a league"""
     try:

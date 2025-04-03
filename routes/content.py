@@ -6,9 +6,11 @@ Manages FAQs, Privacy Policy, and Terms & Conditions content.
 import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import desc, asc
-from models import db, FAQModel, ContentPageModel, faqs_data, content_pages_data
+from models import db, FAQModel, ContentPageModel, faqs_data, content_pages_data, PermissionType
 from utils.response_formatter import format_response, format_error
+from utils.auth import require_permission
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -60,6 +62,8 @@ def get_faq(faq_id):
         return format_error(str(e)), 500
 
 @content_bp.route('/faqs', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def create_faq():
     """Create a new FAQ"""
     try:
@@ -96,6 +100,8 @@ def create_faq():
         return format_error(str(e)), 500
 
 @content_bp.route('/faqs/<int:faq_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def update_faq(faq_id):
     """Update an existing FAQ"""
     try:
@@ -131,6 +137,8 @@ def update_faq(faq_id):
         return format_error(str(e)), 500
 
 @content_bp.route('/faqs/<int:faq_id>', methods=['PATCH'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def patch_faq(faq_id):
     """Partially update an existing FAQ"""
     try:
@@ -166,6 +174,8 @@ def patch_faq(faq_id):
         return format_error(str(e)), 500
 
 @content_bp.route('/faqs/<int:faq_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def delete_faq(faq_id):
     """Delete a FAQ"""
     try:
@@ -245,6 +255,8 @@ def get_content_page_by_type(page_type):
         return format_error(str(e)), 500
 
 @content_bp.route('/pages', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def create_content_page():
     """Create a new content page"""
     try:
@@ -289,6 +301,8 @@ def create_content_page():
         return format_error(str(e)), 500
 
 @content_bp.route('/pages/<int:page_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def update_content_page(page_id):
     """Update an existing content page"""
     try:
@@ -322,6 +336,8 @@ def update_content_page(page_id):
         return format_error(str(e)), 500
 
 @content_bp.route('/pages/<int:page_id>', methods=['PATCH'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def patch_content_page(page_id):
     """Partially update an existing content page"""
     try:
@@ -355,6 +371,8 @@ def patch_content_page(page_id):
         return format_error(str(e)), 500
 
 @content_bp.route('/pages/<int:page_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def delete_content_page(page_id):
     """Delete a content page"""
     try:
