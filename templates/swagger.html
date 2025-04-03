@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gambit Admin API Documentation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.5.0/swagger-ui.css">
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <style>
+        body {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        .swagger-ui {
+            color: #f3f4f6;
+        }
+        .swagger-ui .info .title {
+            color: #f3f4f6;
+        }
+        .swagger-ui .opblock .opblock-summary-description {
+            color: #d1d5db;
+        }
+        .swagger-ui .opblock .opblock-summary-operation-id, 
+        .swagger-ui .opblock .opblock-summary-path, 
+        .swagger-ui .opblock .opblock-summary-path__deprecated {
+            color: #d1d5db;
+        }
+        .swagger-ui .opblock-tag {
+            color: #f3f4f6;
+        }
+        .swagger-ui .opblock-description-wrapper p {
+            color: #d1d5db;
+        }
+        .swagger-ui .parameter__name {
+            color: #d1d5db;
+        }
+        .swagger-ui .response-col_status {
+            color: #d1d5db;
+        }
+        .swagger-ui .response-col_description {
+            color: #d1d5db;
+        }
+        .swagger-ui .model {
+            color: #d1d5db;
+        }
+        .swagger-ui .model-title {
+            color: #f3f4f6;
+        }
+        .swagger-ui .model-box {
+            background-color: #1f2937;
+        }
+        .swagger-ui section.models {
+            background-color: #1f2937;
+        }
+        .swagger-ui section.models h4 {
+            color: #f3f4f6;
+        }
+        .swagger-ui .scheme-container {
+            background-color: #1f2937;
+        }
+        .swagger-ui .btn {
+            background-color: #3b82f6;
+            color: #f3f4f6;
+        }
+        .swagger-ui select {
+            background-color: #1f2937;
+            color: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid pt-4 pb-4">
+        <h1 class="mb-4">Gambit Admin API Documentation</h1>
+        <div id="swagger-ui"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.5.0/swagger-ui-bundle.js"></script>
+    <script>
+        window.onload = function() {
+            SwaggerUIBundle({
+                url: "/static/swagger.json",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+                layout: "BaseLayout",
+                syntaxHighlight: {
+                    activated: true,
+                    theme: "monokai"
+                }
+            });
+        };
+    </script>
+</body>
+</html>

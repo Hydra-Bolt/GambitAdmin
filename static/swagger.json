@@ -1,0 +1,643 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Gambit Admin API",
+    "description": "API for Gambit admin dashboard",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "subscribers",
+      "description": "Subscribers management"
+    },
+    {
+      "name": "users",
+      "description": "Users management"
+    },
+    {
+      "name": "leagues",
+      "description": "Leagues management"
+    },
+    {
+      "name": "teams",
+      "description": "Teams management"
+    },
+    {
+      "name": "dashboard",
+      "description": "Dashboard data"
+    }
+  ],
+  "paths": {
+    "/subscribers": {
+      "get": {
+        "tags": ["subscribers"],
+        "summary": "Get all subscribers",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subscription_type",
+            "schema": {
+              "type": "string",
+              "enum": ["monthly", "yearly"]
+            },
+            "description": "Filter by subscription type"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "expired", "cancelled"]
+            },
+            "description": "Filter by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Subscriber"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["subscribers"],
+        "summary": "Create a new subscriber",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriberInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subscriber created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Subscriber"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscribers/{id}": {
+      "get": {
+        "tags": ["subscribers"],
+        "summary": "Get subscriber by ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Subscriber"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscriber not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["subscribers"],
+        "summary": "Update subscriber",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriberInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscriber updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Subscriber"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscriber not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["subscribers"],
+        "summary": "Delete subscriber",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscriber deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Subscriber deleted successfully"
+                        },
+                        "id": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscriber not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscribers/stats": {
+      "get": {
+        "tags": ["subscribers"],
+        "summary": "Get subscriber statistics",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "example": 10115
+                        },
+                        "monthly": {
+                          "type": "integer",
+                          "example": 7890
+                        },
+                        "yearly": {
+                          "type": "integer",
+                          "example": 2225
+                        },
+                        "growth_rate": {
+                          "type": "number",
+                          "example": 0.8
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": ["dashboard"],
+        "summary": "Get complete dashboard data",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "subscribers": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "example": 10115
+                            },
+                            "monthly": {
+                              "type": "integer",
+                              "example": 7890
+                            },
+                            "yearly": {
+                              "type": "integer",
+                              "example": 2225
+                            },
+                            "growth_rate": {
+                              "type": "number",
+                              "example": 0.8
+                            }
+                          }
+                        },
+                        "popular_content": {
+                          "type": "object",
+                          "properties": {
+                            "most_viewed_league": {
+                              "$ref": "#/components/schemas/League"
+                            },
+                            "most_viewed_team": {
+                              "$ref": "#/components/schemas/Team"
+                            }
+                          }
+                        },
+                        "user_activity": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserActivity"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Subscriber": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "subscription_type": {
+            "type": "string",
+            "enum": ["monthly", "yearly"],
+            "example": "monthly"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-02-15T10:30:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "expired", "cancelled"],
+            "example": "active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          }
+        }
+      },
+      "SubscriberInput": {
+        "type": "object",
+        "required": ["email", "name", "subscription_type", "start_date", "end_date", "status"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "subscription_type": {
+            "type": "string",
+            "enum": ["monthly", "yearly"],
+            "example": "monthly"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-02-15T10:30:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "expired", "cancelled"],
+            "example": "active"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "username": {
+            "type": "string",
+            "example": "johndoe"
+          },
+          "registration_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "last_login": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-02-15T10:30:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive", "suspended"],
+            "example": "active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          }
+        }
+      },
+      "League": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Major League Baseball"
+          },
+          "category": {
+            "type": "string",
+            "example": "Baseball"
+          },
+          "country": {
+            "type": "string",
+            "example": "USA"
+          },
+          "logo_url": {
+            "type": "string",
+            "example": "https://www.mlbstatic.com/mlb-logos/league-on-dark/logo-primary-on-dark.svg"
+          },
+          "popularity": {
+            "type": "integer",
+            "example": 4800
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Baltimore Orioles"
+          },
+          "league_id": {
+            "type": "integer",
+            "example": 2
+          },
+          "logo_url": {
+            "type": "string",
+            "example": "https://www.mlbstatic.com/team-logos/110.svg"
+          },
+          "popularity": {
+            "type": "integer",
+            "example": 4800
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:30:00"
+          }
+        }
+      },
+      "UserActivity": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T00:00:00"
+          },
+          "active_users": {
+            "type": "integer",
+            "example": 2100
+          },
+          "new_users": {
+            "type": "integer",
+            "example": 150
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "An error occurred"
+              },
+              "details": {
+                "type": "object",
+                "nullable": true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
