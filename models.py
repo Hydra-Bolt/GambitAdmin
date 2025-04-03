@@ -3,13 +3,15 @@
 
 from datetime import datetime
 import uuid
-import bcrypt
+from flask_bcrypt import Bcrypt
 from typing import Dict, List, Any, Optional, Union
 from sqlalchemy import String, Integer, DateTime, Boolean, Float, ForeignKey, Text, Table, Column
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_login import UserMixin
-from app import db
+from app import db, app
+
+bcrypt = Bcrypt(app)
 
 # Global variables to maintain backward compatibility during transition
 subscribers_data: List[Dict[str, Any]] = []
@@ -58,15 +60,11 @@ class AdminModel(db.Model, UserMixin):
     
     def set_password(self, password):
         """Hash the password for storage"""
-        password_bytes = password.encode('utf-8')
-        salt = bcrypt.gensalt()
-        self.password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
     
     def check_password(self, password):
         """Check if provided password matches the stored hash"""
-        password_bytes = password.encode('utf-8')
-        hash_bytes = self.password_hash.encode('utf-8')
-        return bcrypt.checkpw(password_bytes, hash_bytes)
+        return bcrypt.check_password_hash(self.password_hash, password)
     
     def has_permission(self, permission):
         """Check if admin has a specific permission"""
