@@ -10,47 +10,13 @@ logger = logging.getLogger(__name__)
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/', methods=['GET'])
-@jwt_required()
-def dashboard():
-    """Render dashboard page with all required data"""
+def get_dashboard_data():
+    """Get all dashboard data in a single request"""
     try:
         # Get subscriber counts
         total_subscribers = len(subscribers_data)
         monthly_subscribers = len([s for s in subscribers_data if s['subscription_type'] == 'monthly' and s['status'] == 'active'])
         yearly_subscribers = len([s for s in subscribers_data if s['subscription_type'] == 'yearly' and s['status'] == 'active'])
-        
-        # Get monthly data for the chart
-        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        monthly_data = [200, 150, 180, 220, 170, 190, 210, 180, 150, 200, 170, 190]  # Example data
-        yearly_data = [300, 280, 320, 290, 310, 270, 330, 290, 250, 320, 280, 340]   # Example data
-        
-        # Get user activity data
-        user_dates = [entry['date'].split('T')[0] for entry in user_activity_data]
-        active_users_data = [entry['active_users'] for entry in user_activity_data]
-        new_users_data = [entry['new_users'] for entry in user_activity_data]
-        
-        # Get most popular league and team
-        most_viewed_league = max(leagues_data, key=lambda x: x['popularity'])
-        most_viewed_team = max(teams_data, key=lambda x: x['popularity'])
-        
-        # Get current admin name
-        admin_id = get_jwt_identity()
-        admin = AdminModel.query.get(admin_id)
-        admin_name = admin.name if admin else "Admin User"
-        
-        return render_template('dashboard.html',
-                            total_subscribers=total_subscribers,
-                            monthly_subscribers=monthly_subscribers,
-                            yearly_subscribers=yearly_subscribers,
-                            months=months,
-                            monthly_data=monthly_data,
-                            yearly_data=yearly_data,
-                            user_dates=user_dates,
-                            active_users_data=active_users_data,
-                            new_users_data=new_users_data,
-                            most_viewed_league=most_viewed_league,
-                            most_viewed_team=most_viewed_team,
-                            admin_name=admin_name)
         
         # Get most popular league
         most_viewed_league = max(leagues_data, key=lambda x: x['popularity']) if leagues_data else None
