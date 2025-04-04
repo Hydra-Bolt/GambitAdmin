@@ -60,7 +60,7 @@ def get_league(league_id):
         return format_error(str(e)), 500
 
 @leagues_bp.route('/', methods=['POST'])
-@jwt_required()
+@jwt_required()require_permission
 @require_permission(PermissionType.LEAGUES)
 def create_league():
     """Create a new league"""
