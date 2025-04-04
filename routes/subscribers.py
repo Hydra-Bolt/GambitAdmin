@@ -1,7 +1,10 @@
+
 from flask import Blueprint, request, jsonify
 import logging
-from models import subscribers_data
+from models import subscribers_data, PermissionType
 from utils.response_formatter import format_response, format_error
+from utils.auth import require_permission
+from flask_jwt_extended import jwt_required
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -10,6 +13,8 @@ logger = logging.getLogger(__name__)
 subscribers_bp = Blueprint('subscribers', __name__)
 
 @subscribers_bp.route('/', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.SUBSCRIBERS)
 def get_subscribers():
     """Get all subscribers with optional filtering"""
     try:
@@ -30,6 +35,8 @@ def get_subscribers():
         return format_error(str(e)), 500
 
 @subscribers_bp.route('/<int:subscriber_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.SUBSCRIBERS)
 def get_subscriber(subscriber_id):
     """Get a specific subscriber by ID"""
     try:
@@ -42,6 +49,8 @@ def get_subscriber(subscriber_id):
         return format_error(str(e)), 500
 
 @subscribers_bp.route('/', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.SUBSCRIBERS)
 def create_subscriber():
     """Create a new subscriber"""
     try:
@@ -79,6 +88,8 @@ def create_subscriber():
         return format_error(str(e)), 500
 
 @subscribers_bp.route('/<int:subscriber_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.SUBSCRIBERS)
 def update_subscriber(subscriber_id):
     """Update an existing subscriber"""
     try:
@@ -106,6 +117,8 @@ def update_subscriber(subscriber_id):
         return format_error(str(e)), 500
 
 @subscribers_bp.route('/<int:subscriber_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.SUBSCRIBERS)
 def delete_subscriber(subscriber_id):
     """Delete a subscriber"""
     try:
@@ -123,6 +136,8 @@ def delete_subscriber(subscriber_id):
         return format_error(str(e)), 500
 
 @subscribers_bp.route('/stats', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.SUBSCRIBERS)
 def get_subscriber_stats():
     """Get subscriber statistics"""
     try:
