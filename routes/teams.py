@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 import logging
-from models import teams_data
+from models import teams_data, PermissionType
 from datetime import datetime
 from utils.response_formatter import format_response, format_error
+from utils.auth import require_permission
+from flask_jwt_extended import jwt_required
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -11,6 +13,8 @@ logger = logging.getLogger(__name__)
 teams_bp = Blueprint('teams', __name__)
 
 @teams_bp.route('/', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def get_teams():
     """Get all teams with optional filtering"""
     try:
@@ -28,6 +32,8 @@ def get_teams():
         return format_error(str(e)), 500
 
 @teams_bp.route('/<int:team_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def get_team(team_id):
     """Get a specific team by ID"""
     try:
@@ -40,6 +46,8 @@ def get_team(team_id):
         return format_error(str(e)), 500
 
 @teams_bp.route('/', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def create_team():
     """Create a new team"""
     try:
@@ -74,6 +82,8 @@ def create_team():
         return format_error(str(e)), 500
 
 @teams_bp.route('/<int:team_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def update_team(team_id):
     """Update an existing team"""
     try:
@@ -101,6 +111,8 @@ def update_team(team_id):
         return format_error(str(e)), 500
 
 @teams_bp.route('/<int:team_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def delete_team(team_id):
     """Delete a team"""
     try:
@@ -118,6 +130,8 @@ def delete_team(team_id):
         return format_error(str(e)), 500
 
 @teams_bp.route('/popular', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.LEAGUES)
 def get_popular_teams():
     """Get most popular teams"""
     try:
