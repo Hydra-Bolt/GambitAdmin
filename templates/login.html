@@ -197,18 +197,18 @@
                         localStorage.setItem('authToken', data.data.token);
                         localStorage.setItem('adminData', JSON.stringify(data.data.admin));
                         
+                        // Also store the token in a cookie for more persistent authentication
+                        // This will make it available for regular page navigation
+                        document.cookie = `auth_token=${data.data.token}; path=/; max-age=${60*60*24*7}`; // 7 days expiry
+                        
                         // Log success information
-                        console.log('Auth token stored:', data.data.token);
+                        console.log('Auth token stored in localStorage and cookie');
                         console.log('Admin data stored:', data.data.admin);
                         
                         // Add a small delay to ensure localStorage is updated
                         setTimeout(() => {
-                            // Set the Authorization header for future requests
-                            const storedToken = localStorage.getItem('authToken');
-                            console.log('Retrieved token before redirect:', storedToken);
-                            
                             // Redirect to dashboard
-                            window.location.href = '/dashboard';
+                            window.location.href = '/';
                         }, 300);
                     } else {
                         // Show error message

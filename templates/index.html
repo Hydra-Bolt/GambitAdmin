@@ -14,7 +14,6 @@
                 window.location.href = '/login';
             } else {
                 // Add the token to all future API requests
-                // This will be sent with fetch requests
                 document.token = authToken;
                 
                 // Set up an interceptor to add the Authorization header to all fetch requests
@@ -31,15 +30,30 @@
                     // Call the original fetch with our modified options
                     return originalFetch(url, options);
                 };
-                
-                // Add an Authorization header to the current page
-                // This is needed for the auth_required decorator to work
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', window.location.href, true);
-                xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
-                xhr.send();
             }
         });
+
+        // This function handles linking between pages while preserving the Authorization header
+        function navigateTo(url) {
+            const authToken = localStorage.getItem('authToken');
+            
+            // Create a form that will POST to the target URL with the auth token
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            form.style.display = 'none';
+            
+            // Add a hidden field with the auth token
+            const tokenField = document.createElement('input');
+            tokenField.type = 'hidden';
+            tokenField.name = 'auth_token';
+            tokenField.value = authToken;
+            form.appendChild(tokenField);
+            
+            // Add the form to the body and submit it
+            document.body.appendChild(form);
+            form.submit();
+        }
     </script>
 </head>
 <body>

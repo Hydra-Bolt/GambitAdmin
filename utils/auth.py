@@ -1,4 +1,3 @@
-
 """
 Authentication utilities for the Gambit Admin API.
 Handles JWT token generation, validation, and permission checks.
@@ -73,13 +72,37 @@ def auth_required(f):
             if request.path == '/login' or request.path.startswith('/static/'):
                 return f(*args, **kwargs)
 
-            auth_header = request.headers.get('Authorization', '')
-            logger.debug(f"Auth header: {auth_header}")
+            # Check various places for the auth token
+            auth_token = None
             
-            if not auth_header or not auth_header.startswith('Bearer '):
-                logger.debug("No valid Authorization header, redirecting to login")
+            # 1. Check Authorization header (Bearer token)
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header and auth_header.startswith('Bearer '):
+                auth_token = auth_header.split(' ')[1]
+                logger.debug(f"Found token in Authorization header")
+            
+            # 2. Check cookies
+            if not auth_token and 'auth_token' in request.cookies:
+                auth_token = request.cookies.get('auth_token')
+                logger.debug(f"Found token in cookies")
+            
+            # 3. Check form data (for POST requests using our custom navigation)
+            if not auth_token and request.method == 'POST' and 'auth_token' in request.form:
+                auth_token = request.form.get('auth_token')
+                logger.debug(f"Found token in form data")
+            
+            # 4. Check query parameters (less secure, but can be useful for development)
+            if not auth_token and 'auth_token' in request.args:
+                auth_token = request.args.get('auth_token')
+                logger.debug(f"Found token in query parameters")
+            
+            if not auth_token:
+                logger.debug("No valid Authentication token found, redirecting to login")
                 return redirect(url_for('login_page'))
-                
+            
+            # Manually set the Authorization header for JWT verification
+            request.headers = {**request.headers, 'Authorization': f'Bearer {auth_token}'}
+            
             # Verify JWT token - will raise exception if invalid
             verify_jwt_in_request()
             logger.debug("JWT verification successful")
