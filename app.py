@@ -99,7 +99,7 @@ from utils.auth import auth_required
 @app.route('/')
 @auth_required
 def index():
-    return render_template('index.html')
+    return redirect(url_for('dashboard.dashboard'))
 
 @app.route('/api/docs')
 @auth_required
