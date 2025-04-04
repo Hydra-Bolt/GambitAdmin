@@ -247,3 +247,160 @@
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gambit Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-[#0A061D] text-white">
+    <div class="p-8">
+        <h1 class="text-2xl mb-8">Dashboard</h1>
+        
+        <!-- Subscribers Overview -->
+        <div class="mb-8">
+            <h2 class="text-xl mb-4">Subscribers Overview</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-[#1A1630] p-4 rounded">
+                    <h3>Total Subscribers</h3>
+                    <p id="totalSubs" class="text-2xl"></p>
+                </div>
+                <div class="bg-[#1A1630] p-4 rounded">
+                    <h3>Monthly</h3>
+                    <p id="monthlySubs" class="text-2xl"></p>
+                </div>
+                <div class="bg-[#1A1630] p-4 rounded">
+                    <h3>Yearly</h3>
+                    <p id="yearlySubs" class="text-2xl"></p>
+                </div>
+            </div>
+            <canvas id="subscribersChart" class="mt-4 bg-[#1A1630] p-4 rounded"></canvas>
+        </div>
+
+        <!-- Users Stats -->
+        <div class="mb-8">
+            <h2 class="text-xl mb-4">Users Stats</h2>
+            <canvas id="usersChart" class="bg-[#1A1630] p-4 rounded"></canvas>
+        </div>
+
+        <!-- Popular Content -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-[#1A1630] p-4 rounded">
+                <h2 class="text-xl mb-4">Most Viewed League</h2>
+                <div id="mostViewedLeague"></div>
+            </div>
+            <div class="bg-[#1A1630] p-4 rounded">
+                <h2 class="text-xl mb-4">Most Viewed Team</h2>
+                <div id="mostViewedTeam"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchDashboardData() {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch('/api/dashboard/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            return data.data;
+        }
+
+        async function initDashboard() {
+            const data = await fetchDashboardData();
+            
+            // Update subscriber counts
+            document.getElementById('totalSubs').textContent = data.subscribers.total;
+            document.getElementById('monthlySubs').textContent = data.subscribers.monthly;
+            document.getElementById('yearlySubs').textContent = data.subscribers.yearly;
+
+            // Update most viewed content
+            document.getElementById('mostViewedLeague').textContent = data.popular_content.most_viewed_league.name;
+            document.getElementById('mostViewedTeam').textContent = data.popular_content.most_viewed_team.name;
+
+            // Initialize charts
+            initSubscribersChart(data.user_activity);
+            initUsersChart(data.user_activity);
+        }
+
+        function initSubscribersChart(data) {
+            const ctx = document.getElementById('subscribersChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Monthly Subscribers',
+                        data: data.map(d => d.monthly_subscribers),
+                        backgroundColor: '#36A2EB'
+                    }, {
+                        label: 'Yearly Subscribers',
+                        data: data.map(d => d.yearly_subscribers),
+                        backgroundColor: '#FF6384'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#2D2D2D'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#2D2D2D'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initUsersChart(data) {
+            const ctx = document.getElementById('usersChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Active Users',
+                        data: data.map(d => d.active_users),
+                        borderColor: '#FF6384',
+                        tension: 0.4
+                    }, {
+                        label: 'New Users',
+                        data: data.map(d => d.new_users),
+                        borderColor: '#36A2EB',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#2D2D2D'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#2D2D2D'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>
