@@ -22,10 +22,6 @@
     },
     {
       "name": "userProfiles",
-      "description": "User profile management and favorites"
-    },
-    {
-      "name": "userProfiles",
       "description": "User Profiles management"
     },
     {

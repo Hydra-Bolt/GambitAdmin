@@ -151,11 +151,20 @@ class UserModel(db.Model):
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
     profile_image: Mapped[str] = mapped_column(String(255), nullable=True)
+    bio: Mapped[str] = mapped_column(Text, nullable=True)
     registration_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     last_login: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False)  # active, inactive, suspended
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # User favorites
+    favorite_sports: Mapped[List[str]] = mapped_column(ARRAY(String), nullable=True, default=[])
+    favorite_teams: Mapped[List[int]] = mapped_column(ARRAY(Integer), nullable=True, default=[])
+    favorite_players: Mapped[List[int]] = mapped_column(ARRAY(Integer), nullable=True, default=[])
+    
+    # Subscription relationship - to be implemented if needed
+    # subscription = relationship("SubscriberModel", backref="user", uselist=False)
     
     def to_dict(self):
         return {
@@ -165,9 +174,13 @@ class UserModel(db.Model):
             "username": self.username,
             "full_name": self.full_name,
             "profile_image": self.profile_image,
+            "bio": self.bio,
             "registration_date": self.registration_date.isoformat(),
             "last_login": self.last_login.isoformat(),
             "status": self.status,
+            "favorite_sports": self.favorite_sports or [],
+            "favorite_teams": self.favorite_teams or [],
+            "favorite_players": self.favorite_players or [],
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
@@ -392,7 +405,10 @@ class User:
     def create_record(id: int, email: str, username: str, 
                       registration_date: datetime, last_login: datetime, 
                       status: str, profile_image: str = "", 
-                      full_name: str = "", uuid: str = "") -> Dict[str, Any]:
+                      full_name: str = "", uuid: str = "",
+                      bio: str = "", favorite_sports: List[str] = None,
+                      favorite_teams: List[int] = None,
+                      favorite_players: List[int] = None) -> Dict[str, Any]:
         return {
             "id": id,
             "uuid": uuid or f"user-{id}-uuid",  # In a real system, this would be a proper UUID
@@ -400,9 +416,13 @@ class User:
             "username": username,
             "full_name": full_name or username,  # Use full name if provided, otherwise username
             "profile_image": profile_image or f"https://ui-avatars.com/api/?name={username}&background=random",
+            "bio": bio or "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
             "registration_date": registration_date.isoformat(),
             "last_login": last_login.isoformat(),
             "status": status,  # active, inactive, suspended
+            "favorite_sports": favorite_sports or [],
+            "favorite_teams": favorite_teams or [],
+            "favorite_players": favorite_players or [],
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
