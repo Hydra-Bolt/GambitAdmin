@@ -3,39 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="auth-check" content="true">
-    <title>Gambit Admin - Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Dashboard - Gambit Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Authentication check
-        document.addEventListener('DOMContentLoaded', function() {
-            const authToken = localStorage.getItem('authToken');
-            if (!authToken) {
-                // Redirect to login page if no auth token is found
-                window.location.href = '/login';
-            } else {
-                // Add the token to all future API requests
-                document.token = authToken;
-
-                // Set up an interceptor to add the Authorization header to all fetch requests
-                const originalFetch = window.fetch;
-                window.fetch = function(url, options = {}) {
-                    if (!options.headers) {
-                        options.headers = {};
-                    }
-                    options.headers['Authorization'] = `Bearer ${authToken}`;
-                    return originalFetch(url, options);
-                };
-
-                // Add Authorization header to current page
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', window.location.href, true);
-                xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
-                xhr.send();
-            }
-        });
-    </script>
     <style>
         body {
             background-color: #0f0a19;
@@ -83,87 +53,386 @@
         }
     </style>
 </head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 sidebar">
-                <h3 class="mb-4">Gambit</h3>
-                <div class="nav flex-column">
-                    <a href="#" class="nav-link active">Dashboard</a>
-                    <a href="#" class="nav-link">Manage Leagues</a>
-                    <a href="#" class="nav-link">Manage Users</a>
-                    <a href="#" class="nav-link">View Subscription</a>
-                    <a href="#" class="nav-link">Manage Reels</a>
-                    <a href="#" class="nav-link">Manage Notification</a>
-                    <a href="#" class="nav-link">Manage Content</a>
-                    <a href="#" class="nav-link">Manage Roles</a>
-                </div>
-            </div>
+<body class="bg-[#0A061D] text-white">
+    <div class="flex">
+        <!-- Sidebar -->
+        <div class="w-1/5 bg-[#1A1225] min-h-screen p-6">
+            <h3 class="text-xl font-bold mb-6">Gambit</h3>
+            <nav class="space-y-4">
+                {% for item in admin_sidebar %}
+                <a href="{{ item.url }}" class="block py-2 px-4 rounded {% if active_page == item.id or (active_page is not defined and item.id == 'dashboard') %}bg-[#2D1F42] text-white{% else %}text-[#A099AD] hover:bg-[#2D1F42] hover:text-white{% endif %}" id="{{ item.id }}Link" data-implemented="{{ item.implemented|lower }}">
+                    {% if item.icon %}
+                    <i class="fas fa-{{ item.icon }} mr-2"></i>
+                    {% endif %}
+                    {{ item.title }}
+                    {% if not item.implemented %}
+                    <span class="ml-2 text-xs py-0.5 px-1 bg-yellow-800 text-yellow-300 rounded">Coming soon</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </nav>
+        </div>
 
-            <!-- Main Content -->
-            <div class="col-md-10 main-content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Dashboard</h2>
-                    <div class="user-info">
-                        <span id="userName">Loading...</span>
+        <!-- Main Content -->
+        <div class="w-4/5 p-8">
+            <!-- Dashboard Content -->
+            <div id="dashboardContent">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-2xl font-bold">Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userName" class="text-sm">Ralph Edwards</span>
+                        <img src="/path/to/avatar.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
                     </div>
                 </div>
 
                 <!-- Subscribers Overview -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="chart-container">
-                            <h4>Subscribers Overview</h4>
-                            <canvas id="subscribersChart"></canvas>
-                        </div>
-                    </div>
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold mb-4">Subscribers Overview</h2>
+                    <canvas id="subscribersChart" class="bg-[#1A1630] p-4 rounded"></canvas>
                 </div>
 
                 <!-- Stats Row -->
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="stats-card">
-                            <h5>Total No. of Subscribers</h5>
-                            <div class="stats-number" id="totalSubscribers">Loading...</div>
-                        </div>
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="bg-[#1A1630] p-6 rounded">
+                        <h3 class="text-lg font-medium">Total No. of Subscribers</h3>
+                        <p id="totalSubscribers" class="text-2xl font-bold mt-2">10,115</p>
                     </div>
-                    <div class="col-md-4">
-                        <div class="stats-card">
-                            <h5>Monthly</h5>
-                            <div class="stats-number" id="monthlySubscribers">Loading...</div>
-                        </div>
+                    <div class="bg-[#1A1630] p-6 rounded">
+                        <h3 class="text-lg font-medium">Monthly</h3>
+                        <p id="monthlySubscribers" class="text-2xl font-bold mt-2">7,890</p>
                     </div>
-                    <div class="col-md-4">
-                        <div class="stats-card">
-                            <h5>Yearly</h5>
-                            <div class="stats-number" id="yearlySubscribers">Loading...</div>
-                        </div>
+                    <div class="bg-[#1A1630] p-6 rounded">
+                        <h3 class="text-lg font-medium">Yearly</h3>
+                        <p id="yearlySubscribers" class="text-2xl font-bold mt-2">2,225</p>
                     </div>
                 </div>
 
                 <!-- Users Stats -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="chart-container">
-                            <h4>Users Stats</h4>
-                            <canvas id="usersChart"></canvas>
-                        </div>
-                    </div>
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold mb-4">Users Stats</h2>
+                    <canvas id="usersChart" class="bg-[#1A1630] p-4 rounded"></canvas>
                 </div>
 
                 <!-- Popular Content -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="stats-card">
-                            <h5>Most Viewed League</h5>
-                            <div id="mostViewedLeague">Loading...</div>
-                        </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-[#1A1630] p-6 rounded">
+                        <h3 class="text-lg font-medium">Most Viewed League</h3>
+                        <p id="mostViewedLeague" class="text-xl font-bold mt-2">Baltimore Orioles</p>
                     </div>
-                    <div class="col-md-6">
-                        <div class="stats-card">
-                            <h5>Most Viewed Team</h5>
-                            <div id="mostViewedTeam">Loading...</div>
+                    <div class="bg-[#1A1630] p-6 rounded">
+                        <h3 class="text-lg font-medium">Most Viewed Team</h3>
+                        <p id="mostViewedTeam" class="text-xl font-bold mt-2">Baltimore Orioles</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leagues Management Content -->
+            <div id="leaguesContent" class="hidden">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-2xl font-bold">Manage Leagues</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userNameLeagues" class="text-sm">Ralph Edwards</span>
+                        <img src="/path/to/avatar.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                    </div>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div class="mb-6 bg-[#1A1630] p-4 rounded">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div>
+                            <label for="categoryFilter" class="block mb-1 text-sm">Category</label>
+                            <input type="text" id="categoryFilter" placeholder="Filter by category" class="bg-[#0A061D] rounded p-2 text-sm">
+                        </div>
+                        <div>
+                            <label for="countryFilter" class="block mb-1 text-sm">Country</label>
+                            <input type="text" id="countryFilter" placeholder="Filter by country" class="bg-[#0A061D] rounded p-2 text-sm">
+                        </div>
+                        <div class="flex items-center mt-5">
+                            <input type="checkbox" id="enabledFilter" class="mr-2">
+                            <label for="enabledFilter" class="text-sm">Show only enabled</label>
+                        </div>
+                        <button id="applyFilters" class="bg-[#2D1F42] text-white py-2 px-4 rounded mt-5 ml-auto">Apply Filters</button>
+                        <button id="createLeagueBtn" class="bg-green-600 text-white py-2 px-4 rounded mt-5">Create New League</button>
+                    </div>
+                </div>
+
+                <!-- Leagues Table -->
+                <div class="bg-[#1A1630] p-4 rounded overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[#2D2D2D]">
+                                <th class="text-left p-2">ID</th>
+                                <th class="text-left p-2">Logo</th>
+                                <th class="text-left p-2">Name</th>
+                                <th class="text-left p-2">Category</th>
+                                <th class="text-left p-2">Country</th>
+                                <th class="text-left p-2">Popularity</th>
+                                <th class="text-left p-2">Status</th>
+                                <th class="text-left p-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaguesTableBody">
+                            <!-- League rows will be inserted here dynamically -->
+                            <tr>
+                                <td colspan="8" class="p-4 text-center">Loading leagues data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subscribers Management Content -->
+            <div id="subscribersContent" class="hidden">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-2xl font-bold">View Subscriptions</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userNameSubscribers" class="text-sm">Ralph Edwards</span>
+                        <img src="/path/to/avatar.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                    </div>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div class="mb-6 bg-[#1A1630] p-4 rounded">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div>
+                            <label for="subscriptionTypeFilter" class="block mb-1 text-sm">Subscription Type</label>
+                            <select id="subscriptionTypeFilter" class="bg-[#0A061D] rounded p-2 text-sm">
+                                <option value="">All</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="subscriptionStatusFilter" class="block mb-1 text-sm">Status</label>
+                            <select id="subscriptionStatusFilter" class="bg-[#0A061D] rounded p-2 text-sm">
+                                <option value="">All</option>
+                                <option value="active">Active</option>
+                                <option value="expired">Expired</option>
+                                <option value="canceled">Canceled</option>
+                            </select>
+                        </div>
+                        <button id="applySubscriptionFilters" class="bg-[#2D1F42] text-white py-2 px-4 rounded mt-5 ml-auto">Apply Filters</button>
+                    </div>
+                </div>
+
+                <!-- Subscriptions Table -->
+                <div class="bg-[#1A1630] p-4 rounded overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[#2D2D2D]">
+                                <th class="text-left p-2">ID</th>
+                                <th class="text-left p-2">User Name</th>
+                                <th class="text-left p-2">Email</th>
+                                <th class="text-left p-2">Type</th>
+                                <th class="text-left p-2">Amount</th>
+                                <th class="text-left p-2">Start Date</th>
+                                <th class="text-left p-2">Expiry Date</th>
+                                <th class="text-left p-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscriptionsTableBody">
+                            <!-- Subscription rows will be inserted here dynamically -->
+                            <tr>
+                                <td colspan="8" class="p-4 text-center">Loading subscriptions data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="mt-6 flex justify-center items-center">
+                    <button id="prevPageBtn" class="bg-[#1A1630] px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div id="paginationNumbers" class="mx-4 flex space-x-2">
+                        <!-- Page numbers will be inserted here dynamically -->
+                    </div>
+                    <button id="nextPageBtn" class="bg-[#1A1630] px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Users Management Content -->
+            <div id="usersContent" class="hidden">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-2xl font-bold">Manage Users</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userNameUsers" class="text-sm">Ralph Edwards</span>
+                        <img src="/path/to/avatar.jpg" alt="User Avatar" class="w-8 h-8 rounded-full">
+                    </div>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div class="mb-6 bg-[#1A1630] p-4 rounded">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div>
+                            <label for="statusFilter" class="block mb-1 text-sm">Status</label>
+                            <select id="statusFilter" class="bg-[#0A061D] rounded p-2 text-sm">
+                                <option value="">All</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="subscriptionFilter" class="block mb-1 text-sm">Subscription</label>
+                            <select id="subscriptionFilter" class="bg-[#0A061D] rounded p-2 text-sm">
+                                <option value="">All</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                                <option value="none">No subscription</option>
+                            </select>
+                        </div>
+                        <button id="applyUserFilters" class="bg-[#2D1F42] text-white py-2 px-4 rounded mt-5 ml-auto">Apply Filters</button>
+                    </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="bg-[#1A1630] p-4 rounded overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[#2D2D2D]">
+                                <th class="text-left p-2">ID</th>
+                                <th class="text-left p-2">Profile</th>
+                                <th class="text-left p-2">Name</th>
+                                <th class="text-left p-2">Email</th>
+                                <th class="text-left p-2">Status</th>
+                                <th class="text-left p-2">Subscription</th>
+                                <th class="text-left p-2">Amount Spent</th>
+                                <th class="text-left p-2">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- User rows will be inserted here dynamically -->
+                            <tr>
+                                <td colspan="8" class="p-4 text-center">Loading users data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- User Detail Modal -->
+                <div id="userDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                    <div class="bg-[#1A1225] p-5 rounded-lg shadow-lg w-3/4 max-w-5xl max-h-[90vh] overflow-y-auto">
+                        <!-- Modal Header -->
+                        <div class="flex justify-between items-center border-b border-[#2D2D2D] pb-4 mb-4">
+                            <h3 class="text-xl font-bold">User Details</h3>
+                            <button id="closeUserDetailModal" class="text-gray-400 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Modal Content -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- User Details Column -->
+                            <div class="bg-[#0A061D] p-4 rounded">
+                                <div class="flex items-center mb-6">
+                                    <img id="modalUserImage" src="" alt="User Profile" class="w-20 h-20 rounded-full mr-4 object-cover">
+                                    <div>
+                                        <h4 id="modalUserName" class="text-xl font-bold"></h4>
+                                        <p id="modalUserEmail" class="text-gray-400"></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="font-medium mb-2">User ID</h5>
+                                    <p id="modalUserId" class="bg-[#1A1225] p-2 rounded"></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="font-medium mb-2">UUID</h5>
+                                    <p id="modalUserUuid" class="bg-[#1A1225] p-2 rounded"></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="font-medium mb-2">Username</h5>
+                                    <p id="modalUsername" class="bg-[#1A1225] p-2 rounded"></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="font-medium mb-2">Registration Date</h5>
+                                    <p id="modalRegistrationDate" class="bg-[#1A1225] p-2 rounded"></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="font-medium mb-2">Last Login</h5>
+                                    <p id="modalLastLogin" class="bg-[#1A1225] p-2 rounded"></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="font-medium mb-2">Status</h5>
+                                    <p id="modalUserStatus" class="inline-block py-1 px-2 rounded-full text-xs font-medium"></p>
+                                </div>
+                </div>
+                <div class="bg-[#1A1630] p-6 rounded">
+                                    <button id="restrictUserBtn" class="bg-red-600 text-white py-2 px-4 rounded w-full">Restrict User</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Subscription & Favorites Column -->
+                            <div>
+                                <!-- Subscription Details -->
+                                <div class="bg-[#0A061D] p-4 rounded mb-6">
+                                    <h4 class="text-lg font-medium mb-4">Subscription Details</h4>
+                                    
+                                    <div id="noSubscriptionMessage" class="hidden py-4">
+                                        <p class="text-yellow-300">No active subscription</p>
+                                    </div>
+                                    
+                                    <div id="subscriptionDetails">
+                                        <div class="grid grid-cols-2 gap-4 mb-3">
+                                            <div>
+                                                <h5 class="text-sm text-gray-400">Type</h5>
+                                                <p id="modalSubType" class="font-medium"></p>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-sm text-gray-400">Amount</h5>
+                                                <p id="modalSubAmount" class="font-medium"></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="grid grid-cols-2 gap-4 mb-3">
+                                            <div>
+                                                <h5 class="text-sm text-gray-400">Start Date</h5>
+                                                <p id="modalSubStartDate" class="font-medium"></p>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-sm text-gray-400">Expiry Date</h5>
+                                                <p id="modalSubExpiryDate" class="font-medium"></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <h5 class="text-sm text-gray-400">Status</h5>
+                                            <p id="modalSubStatus" class="inline-block py-1 px-2 rounded-full text-xs font-medium mt-1"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Favorites Sections -->
+                                <div class="grid grid-cols-1 gap-4">
+                                    <!-- Favorite Sports -->
+                                    <div class="bg-[#0A061D] p-4 rounded">
+                                        <h4 class="text-lg font-medium mb-4">Favorite Sports</h4>
+                                        <div id="favoriteSports" class="flex flex-wrap gap-2"></div>
+                                    </div>
+                                    
+                                    <!-- Favorite Teams -->
+                                    <div class="bg-[#0A061D] p-4 rounded">
+                                        <h4 class="text-lg font-medium mb-4">Favorite Teams</h4>
+                                        <div id="favoriteTeams" class="flex flex-wrap gap-3"></div>
+                                    </div>
+                                    
+                                    <!-- Favorite Players -->
+                                    <div class="bg-[#0A061D] p-4 rounded">
+                                        <h4 class="text-lg font-medium mb-4">Favorite Players</h4>
+                                        <div id="favoritePlayers" class="flex flex-wrap gap-3"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -171,33 +440,165 @@
         </div>
     </div>
 
+    <!-- Create League Modal -->
+    <div id="createLeagueModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div class="bg-[#1A1225] p-5 rounded-lg shadow-lg w-3/4 max-w-2xl">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center border-b border-[#2D2D2D] pb-4 mb-4">
+                <h3 class="text-xl font-bold">Create New League</h3>
+                <button class="close-modal text-gray-400 hover:text-white" data-modal="createLeagueModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <form id="createLeagueForm">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="newLeagueName" class="block mb-1 text-sm">League Name *</label>
+                        <input type="text" id="newLeagueName" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                    <div>
+                        <label for="newLeagueCategory" class="block mb-1 text-sm">Category *</label>
+                        <input type="text" id="newLeagueCategory" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="newLeagueCountry" class="block mb-1 text-sm">Country *</label>
+                        <input type="text" id="newLeagueCountry" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                    <div>
+                        <label for="newLeagueLogoUrl" class="block mb-1 text-sm">Logo URL *</label>
+                        <input type="text" id="newLeagueLogoUrl" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="newLeaguePopularity" class="block mb-1 text-sm">Popularity (0-100)</label>
+                        <input type="number" id="newLeaguePopularity" min="0" max="100" class="bg-[#0A061D] rounded p-2 text-sm w-full">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="newLeagueEnabled" class="mr-2" checked>
+                        <label for="newLeagueEnabled" class="text-sm">Enabled</label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" class="close-modal bg-gray-600 text-white py-2 px-4 rounded mr-2" data-modal="createLeagueModal">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white py-2 px-4 rounded">Create League</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit League Modal -->
+    <div id="editLeagueModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div class="bg-[#1A1225] p-5 rounded-lg shadow-lg w-3/4 max-w-2xl">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center border-b border-[#2D2D2D] pb-4 mb-4">
+                <h3 class="text-xl font-bold">Edit League</h3>
+                <button class="close-modal text-gray-400 hover:text-white" data-modal="editLeagueModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <form id="editLeagueForm">
+                <input type="hidden" id="editLeagueId">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="editLeagueName" class="block mb-1 text-sm">League Name *</label>
+                        <input type="text" id="editLeagueName" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                    <div>
+                        <label for="editLeagueCategory" class="block mb-1 text-sm">Category *</label>
+                        <input type="text" id="editLeagueCategory" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="editLeagueCountry" class="block mb-1 text-sm">Country *</label>
+                        <input type="text" id="editLeagueCountry" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                    <div>
+                        <label for="editLeagueLogoUrl" class="block mb-1 text-sm">Logo URL *</label>
+                        <input type="text" id="editLeagueLogoUrl" class="bg-[#0A061D] rounded p-2 text-sm w-full" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="editLeaguePopularity" class="block mb-1 text-sm">Popularity (0-100)</label>
+                        <input type="number" id="editLeaguePopularity" min="0" max="100" class="bg-[#0A061D] rounded p-2 text-sm w-full">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="editLeagueEnabled" class="mr-2">
+                        <label for="editLeagueEnabled" class="text-sm">Enabled</label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" class="close-modal bg-gray-600 text-white py-2 px-4 rounded mr-2" data-modal="editLeagueModal">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // Fetch dashboard data
+        // Helper function to get the JWT token from localStorage or cookies
+        function getAuthToken() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                return token;
+            }
+            
+            const cookieToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('authToken='))
+                ?.split('=')[1];
+                
+            return cookieToken;
+        }
+
+        // Fetch and initialize dashboard data
         async function fetchDashboardData() {
-            const response = await fetch('/api/dashboard/');
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('No authentication token found. Please log in again.');
+            }
+
+            const response = await fetch('/api/dashboard/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const data = await response.json();
             return data.data;
         }
 
-        // Initialize charts and populate data
+        // Initialize dashboard
         async function initializeDashboard() {
             const data = await fetchDashboardData();
-
-            // Update subscriber stats
+            
             document.getElementById('totalSubscribers').textContent = data.subscribers.total;
             document.getElementById('monthlySubscribers').textContent = data.subscribers.monthly;
             document.getElementById('yearlySubscribers').textContent = data.subscribers.yearly;
-
-            // Update popular content
             document.getElementById('mostViewedLeague').textContent = data.popular_content.most_viewed_league.name;
             document.getElementById('mostViewedTeam').textContent = data.popular_content.most_viewed_team.name;
 
-            // Initialize Subscribers Chart
-            const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             new Chart(document.getElementById('subscribersChart'), {
                 type: 'bar',
                 data: {
-                    labels: monthLabels,
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                     datasets: [
                         {
                             label: 'Monthly',
@@ -217,38 +618,34 @@
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: '#2d1f42'
+                                color: '#2D2D2D'
                             }
                         },
                         x: {
                             grid: {
-                                color: '#2d1f42'
+                                color: '#2D2D2D'
                             }
                         }
                     }
                 }
             });
 
-            // Initialize Users Chart
-            const userActivity = data.user_activity || [];
             new Chart(document.getElementById('usersChart'), {
                 type: 'line',
                 data: {
-                    labels: userActivity.map(item => item.date),
+                    labels: data.user_activity.map(item => item.date),
                     datasets: [
                         {
                             label: 'Active Users',
-                            data: userActivity.map(item => item.active_users),
+                            data: data.user_activity.map(item => item.active_users),
                             borderColor: '#FF6384',
-                            tension: 0.4,
-                            fill: false
+                            tension: 0.4
                         },
                         {
                             label: 'New Users',
-                            data: userActivity.map(item => item.new_users),
+                            data: data.user_activity.map(item => item.new_users),
                             borderColor: '#36A2EB',
-                            tension: 0.4,
-                            fill: false
+                            tension: 0.4
                         }
                     ]
                 },
@@ -258,127 +655,6 @@
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: '#2d1f42'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: '#2d1f42'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Initialize the dashboard when the page loads
-        document.addEventListener('DOMContentLoaded', initializeDashboard);
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Gambit Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-[#0A061D] text-white">
-    <div class="p-8">
-        <h1 class="text-2xl mb-8">Dashboard</h1>
-
-        <!-- Subscribers Overview -->
-        <div class="mb-8">
-            <h2 class="text-xl mb-4">Subscribers Overview</h2>
-            <div class="grid grid-cols-3 gap-4">
-                <div class="bg-[#1A1630] p-4 rounded">
-                    <h3>Total Subscribers</h3>
-                    <p id="totalSubs" class="text-2xl"></p>
-                </div>
-                <div class="bg-[#1A1630] p-4 rounded">
-                    <h3>Monthly</h3>
-                    <p id="monthlySubs" class="text-2xl"></p>
-                </div>
-                <div class="bg-[#1A1630] p-4 rounded">
-                    <h3>Yearly</h3>
-                    <p id="yearlySubs" class="text-2xl"></p>
-                </div>
-            </div>
-            <canvas id="subscribersChart" class="mt-4 bg-[#1A1630] p-4 rounded"></canvas>
-        </div>
-
-        <!-- Users Stats -->
-        <div class="mb-8">
-            <h2 class="text-xl mb-4">Users Stats</h2>
-            <canvas id="usersChart" class="bg-[#1A1630] p-4 rounded"></canvas>
-        </div>
-
-        <!-- Popular Content -->
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-[#1A1630] p-4 rounded">
-                <h2 class="text-xl mb-4">Most Viewed League</h2>
-                <div id="mostViewedLeague"></div>
-            </div>
-            <div class="bg-[#1A1630] p-4 rounded">
-                <h2 class="text-xl mb-4">Most Viewed Team</h2>
-                <div id="mostViewedTeam"></div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        async function fetchDashboardData() {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch('/api/dashboard/', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
-            return data.data;
-        }
-
-        async function initDashboard() {
-            const data = await fetchDashboardData();
-
-            // Update subscriber counts
-            document.getElementById('totalSubs').textContent = data.subscribers.total;
-            document.getElementById('monthlySubs').textContent = data.subscribers.monthly;
-            document.getElementById('yearlySubs').textContent = data.subscribers.yearly;
-
-            // Update most viewed content
-            document.getElementById('mostViewedLeague').textContent = data.popular_content.most_viewed_league.name;
-            document.getElementById('mostViewedTeam').textContent = data.popular_content.most_viewed_team.name;
-
-            // Initialize charts
-            initSubscribersChart(data.user_activity);
-            initUsersChart(data.user_activity);
-        }
-
-        function initSubscribersChart(data) {
-            const ctx = document.getElementById('subscribersChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(d => d.date),
-                    datasets: [{
-                        label: 'Monthly Subscribers',
-                        data: data.map(d => d.monthly_subscribers),
-                        backgroundColor: '#36A2EB'
-                    }, {
-                        label: 'Yearly Subscribers',
-                        data: data.map(d => d.yearly_subscribers),
-                        backgroundColor: '#FF6384'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
                                 color: '#2D2D2D'
                             }
                         },
@@ -392,44 +668,210 @@
             });
         }
 
-        function initUsersChart(data) {
-            const ctx = document.getElementById('usersChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.map(d => d.date),
-                    datasets: [{
-                        label: 'Active Users',
-                        data: data.map(d => d.active_users),
-                        borderColor: '#FF6384',
-                        tension: 0.4
-                    }, {
-                        label: 'New Users',
-                        data: data.map(d => d.new_users),
-                        borderColor: '#36A2EB',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: '#2D2D2D'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: '#2D2D2D'
-                            }
-                        }
-                    }
+        // Fetch subscriptions data from the API with pagination and filters
+        async function fetchSubscriptions(page = 1, filters = {}) {
+            try {
+                let url = '/api/subscribers/?page=' + page + '&per_page=10';
+                
+                if (filters.type) url += `&subscription_type=${filters.type}`;
+                if (filters.status) url += `&status=${filters.status}`;
+                
+                const token = getAuthToken();
+                if (!token) {
+                    throw new Error('No authentication token found. Please log in again.');
                 }
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch subscriptions: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                return result.data;
+            } catch (error) {
+                console.error('Error fetching subscriptions:', error);
+                showNotification('Error fetching subscriptions: ' + error.message, 'error');
+                return { items: [], pagination: { total_pages: 0, current_page: 1 } };
+            }
+        }
+
+        // Display subscriptions in the table
+        function displaySubscriptions(subscriptions) {
+            const tableBody = document.getElementById('subscriptionsTableBody');
+            tableBody.innerHTML = '';
+            
+            if (!subscriptions || subscriptions.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="p-4 text-center">No subscriptions found</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            subscriptions.forEach(subscription => {
+                const row = document.createElement('tr');
+                row.classList.add('border-b', 'border-[#2D2D2D]', 'hover:bg-[#1E1436]');
+                
+                let statusBadge;
+                switch (subscription.status) {
+                    case 'active':
+                        statusBadge = `<span class="bg-green-900 text-green-300 py-1 px-2 rounded-full text-xs">Active</span>`;
+                        break;
+                    case 'expired':
+                        statusBadge = `<span class="bg-red-900 text-red-300 py-1 px-2 rounded-full text-xs">Expired</span>`;
+                        break;
+                    case 'canceled':
+                        statusBadge = `<span class="bg-yellow-900 text-yellow-300 py-1 px-2 rounded-full text-xs">Canceled</span>`;
+                        break;
+                    default:
+                        statusBadge = `<span class="bg-gray-900 text-gray-300 py-1 px-2 rounded-full text-xs">${subscription.status}</span>`;
+                }
+                
+                const startDate = new Date(subscription.start_date).toLocaleDateString();
+                const expiryDate = new Date(subscription.end_date).toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td class="p-2">${subscription.id}</td>
+                    <td class="p-2">${subscription.name}</td>
+                    <td class="p-2">${subscription.email}</td>
+                    <td class="p-2">${subscription.subscription_type}</td>
+                    <td class="p-2">$${subscription.amount}</td>
+                    <td class="p-2">${startDate}</td>
+                    <td class="p-2">${expiryDate}</td>
+                    <td class="p-2">${statusBadge}</td>
+                `;
+                
+                tableBody.appendChild(row);
             });
         }
 
-        initDashboard();
+        // Setup pagination controls
+        function setupPagination(paginationData) {
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+            const paginationNumbers = document.getElementById('paginationNumbers');
+            
+            paginationNumbers.innerHTML = '';
+            
+            for (let i = 1; i <= paginationData.total_pages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.classList.add('px-3', 'py-1', 'rounded');
+                
+                if (i === paginationData.current_page) {
+                    pageBtn.classList.add('bg-[#2D1F42]', 'text-white');
+                } else {
+                    pageBtn.classList.add('bg-[#1A1630]', 'hover:bg-[#2D1F42]');
+                }
+                
+                pageBtn.addEventListener('click', function() {
+                    loadSubscriptionsPage(i);
+                });
+                
+                paginationNumbers.appendChild(pageBtn);
+            }
+            
+            prevBtn.disabled = !paginationData.has_prev;
+            nextBtn.disabled = !paginationData.has_next;
+            
+            prevBtn.classList.toggle('opacity-50', !paginationData.has_prev);
+            nextBtn.classList.toggle('opacity-50', !paginationData.has_next);
+            
+            prevBtn.onclick = function() {
+                if (paginationData.has_prev) {
+                    loadSubscriptionsPage(paginationData.current_page - 1);
+                }
+            };
+            
+            nextBtn.onclick = function() {
+                if (paginationData.has_next) {
+                    loadSubscriptionsPage(paginationData.current_page + 1);
+                }
+            };
+        }
+
+        // Load subscriptions for a specific page with filters
+        async function loadSubscriptionsPage(page = 1) {
+            const typeFilter = document.getElementById('subscriptionTypeFilter')?.value || '';
+            const statusFilter = document.getElementById('subscriptionStatusFilter')?.value || '';
+            
+            const filters = {};
+            if (typeFilter) filters.type = typeFilter;
+            if (statusFilter) filters.status = statusFilter;
+            
+            const result = await fetchSubscriptions(page, filters);
+            
+            if (result && result.items) {
+                displaySubscriptions(result.items);
+                setupPagination(result.pagination);
+            }
+        }
+
+        // Fetch and display subscriptions with filtering
+        async function fetchAndDisplaySubscriptions() {
+            await loadSubscriptionsPage(1);
+        }
+
+        // Setup subscription filter form
+        function setupSubscriptionFilterForm() {
+            const applyFiltersBtn = document.getElementById('applySubscriptionFilters');
+            
+            if (applyFiltersBtn) {
+                applyFiltersBtn.addEventListener('click', fetchAndDisplaySubscriptions);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            
+            const path = window.location.pathname;
+            
+            const dashboardContent = document.getElementById('dashboardContent');
+            const leaguesContent = document.getElementById('leaguesContent');
+            const usersContent = document.getElementById('usersContent');
+            const subscribersContent = document.getElementById('subscribersContent');
+            
+            if (dashboardContent) dashboardContent.classList.add('hidden');
+            if (leaguesContent) leaguesContent.classList.add('hidden');
+            if (usersContent) usersContent.classList.add('hidden');
+            if (subscribersContent) subscribersContent.classList.add('hidden');
+            
+            if (path === '/dashboard' || path === '/') {
+                if (dashboardContent) dashboardContent.classList.remove('hidden');
+            } else if (path === '/leagues') {
+                if (leaguesContent) leaguesContent.classList.remove('hidden');
+                fetchAndDisplayLeagues();
+            } else if (path === '/users') {
+                if (usersContent) usersContent.classList.remove('hidden');
+                fetchAndDisplayUsers();
+            } else if (path === '/subscribers') {
+                if (subscribersContent) subscribersContent.classList.remove('hidden');
+                fetchAndDisplaySubscriptions();
+            }
+            
+            setupFilterForm();
+            setupCreateLeagueButton();
+            setupCreateLeagueForm();
+            setupEditLeagueForm();
+            setupModalCloseButtons();
+            
+            setupUserFilterForm();
+            setupUserDetailModal();
+            
+            setupSubscriptionFilterForm();
+            
+            const userName = localStorage.getItem('userName') || 'Admin User';
+            const userNameElements = document.querySelectorAll('.user-name');
+            userNameElements.forEach(el => {
+                if (el) el.textContent = userName;
+            });
+        });
     </script>
 </body>
 </html>

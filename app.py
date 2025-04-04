@@ -92,6 +92,17 @@ app.register_blueprint(reels_bp, url_prefix='/api/reels')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(content_bp, url_prefix='/api/content')
 
+# Import sidebar manager
+from utils.sidebar_manager import get_sidebar_items, get_active_sidebar_item
+
+# Make sidebar menu available to all templates
+@app.context_processor
+def inject_sidebar():
+    return {
+        'admin_sidebar': get_sidebar_items(current_user if current_user.is_authenticated else None),
+        'active_page': get_active_sidebar_item()
+    }
+
 # Add routes for documentation and login
 from flask import render_template, redirect, url_for, request
 from utils.auth import auth_required
@@ -114,6 +125,47 @@ def api_docs():
 @app.route('/login')
 def login_page():
     return render_template('login.html')
+
+# Routes for other sidebar items
+@app.route('/leagues')
+@auth_required
+def leagues_page():
+    return render_template('dashboard.html')
+
+@app.route('/users')
+@auth_required
+def users_page():
+    return render_template('dashboard.html')
+
+@app.route('/subscribers')
+@auth_required
+def subscribers_page():
+    return render_template('dashboard.html')
+
+@app.route('/reels')
+@auth_required
+def reels_page():
+    return render_template('dashboard.html')
+
+@app.route('/notifications')
+@auth_required
+def notifications_page():
+    return render_template('dashboard.html')
+
+@app.route('/content')
+@auth_required
+def content_page():
+    return render_template('dashboard.html')
+
+@app.route('/roles')
+@auth_required
+def roles_page():
+    return render_template('dashboard.html')
+
+@app.route('/admins')
+@auth_required
+def admins_page():
+    return render_template('dashboard.html')
 
 # Database initialization moved to main.py
 logger.info("Gambit Admin API configured")

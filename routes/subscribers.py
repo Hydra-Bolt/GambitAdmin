@@ -1,10 +1,11 @@
-
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 import logging
 from models import subscribers_data, PermissionType
 from utils.response_formatter import format_response, format_error
 from utils.auth import require_permission
 from flask_jwt_extended import jwt_required
+from math import ceil
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -16,11 +17,15 @@ subscribers_bp = Blueprint('subscribers', __name__)
 @jwt_required()
 @require_permission(PermissionType.SUBSCRIBERS)
 def get_subscribers():
-    """Get all subscribers with optional filtering"""
+    """Get all subscribers with optional filtering and pagination"""
     try:
         # Query parameters for filtering
         subscription_type = request.args.get('subscription_type')
         status = request.args.get('status')
+        
+        # Pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
         
         # Apply filters if provided
         filtered_data = subscribers_data
@@ -29,7 +34,29 @@ def get_subscribers():
         if status:
             filtered_data = [s for s in filtered_data if s['status'] == status]
             
-        return format_response(filtered_data)
+        # Calculate total pages
+        total_items = len(filtered_data)
+        total_pages = ceil(total_items / per_page)
+        
+        # Apply pagination
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_data = filtered_data[start_idx:end_idx]
+        
+        # Prepare response with pagination info
+        response_data = {
+            'items': paginated_data,
+            'pagination': {
+                'total_items': total_items,
+                'total_pages': total_pages,
+                'current_page': page,
+                'per_page': per_page,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        }
+            
+        return format_response(response_data)
     except Exception as e:
         logger.error(f"Error getting subscribers: {str(e)}")
         return format_error(str(e)), 500

@@ -112,3 +112,14 @@ def get_popular_content():
     except Exception as e:
         logger.error(f"Error getting popular content: {str(e)}")
         return format_error(str(e)), 500
+
+@dashboard_bp.route('/manage-leagues', methods=['GET'])
+def manage_leagues():
+    """Serve the Manage Leagues page"""
+    try:
+        # Fetch leagues data (this can be extended to fetch from the database or API)
+        from flask import render_template
+        return render_template('manage_leagues.html')
+    except Exception as e:
+        logger.error(f"Error loading Manage Leagues page: {str(e)}")
+        return format_error(str(e)), 500
