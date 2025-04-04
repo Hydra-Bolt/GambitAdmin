@@ -86,7 +86,7 @@ app.register_blueprint(subscribers_bp, url_prefix='/api/subscribers')
 app.register_blueprint(users_bp, url_prefix='/api/users')
 app.register_blueprint(leagues_bp, url_prefix='/api/leagues')
 app.register_blueprint(teams_bp, url_prefix='/api/teams')
-app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 app.register_blueprint(players_bp, url_prefix='/api/players')
 app.register_blueprint(reels_bp, url_prefix='/api/reels')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
@@ -99,7 +99,7 @@ from utils.auth import auth_required
 @app.route('/')
 @auth_required
 def index():
-    return render_template('index.html')
+    return redirect(url_for('dashboard.dashboard'))
 
 @app.route('/api/docs')
 @auth_required
