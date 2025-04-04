@@ -184,17 +184,35 @@
                         password: password
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.success) {
+                    console.log('Login response:', data);
+                    
+                    if (data.success === true) {
                         // Store token in localStorage
                         localStorage.setItem('authToken', data.data.token);
                         localStorage.setItem('adminData', JSON.stringify(data.data.admin));
                         
-                        // Redirect to dashboard
-                        window.location.href = '/';
+                        // Log success information
+                        console.log('Auth token stored:', data.data.token);
+                        console.log('Admin data stored:', data.data.admin);
+                        
+                        // Add a small delay to ensure localStorage is updated
+                        setTimeout(() => {
+                            // Set the Authorization header for future requests
+                            const storedToken = localStorage.getItem('authToken');
+                            console.log('Retrieved token before redirect:', storedToken);
+                            
+                            // Redirect to dashboard
+                            window.location.href = '/';
+                        }, 300);
                     } else {
                         // Show error message
+                        console.error('Login failed:', data);
                         errorAlert.textContent = data.message || 'Login failed. Please check your credentials.';
                         errorAlert.classList.remove('d-none');
                     }

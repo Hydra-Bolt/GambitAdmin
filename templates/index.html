@@ -16,6 +16,28 @@
                 // Add the token to all future API requests
                 // This will be sent with fetch requests
                 document.token = authToken;
+                
+                // Set up an interceptor to add the Authorization header to all fetch requests
+                const originalFetch = window.fetch;
+                window.fetch = function(url, options = {}) {
+                    // Create headers if they don't exist
+                    if (!options.headers) {
+                        options.headers = {};
+                    }
+                    
+                    // Add the Authorization header with the token
+                    options.headers['Authorization'] = `Bearer ${authToken}`;
+                    
+                    // Call the original fetch with our modified options
+                    return originalFetch(url, options);
+                };
+                
+                // Add an Authorization header to the current page
+                // This is needed for the auth_required decorator to work
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', window.location.href, true);
+                xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+                xhr.send();
             }
         });
     </script>
@@ -293,6 +315,11 @@
                         <div class="text-center mt-4">
                             <p>New features highlighted in <span class="badge bg-success">green</span></p>
                             <a href="/api/docs" class="btn btn-outline-primary">Interactive API Documentation</a>
+                            <button id="testJwtBtn" class="btn btn-outline-info ml-2">Test JWT Auth</button>
+                            <div id="jwt-test-result" class="mt-3 p-3 border rounded bg-dark d-none">
+                                <h5>JWT Test Results</h5>
+                                <pre id="jwt-result-content" class="mt-2" style="white-space: pre-wrap; overflow-x: auto;"></pre>
+                            </div>
                         </div>
                     </div>
                     <div class="card-footer text-muted text-center">
@@ -357,6 +384,57 @@
 
         // Example API call with authentication
         // fetchWithAuth('/api/users/').then(res => res.json()).then(data => console.log(data));
+        
+        // JWT Test Button
+        document.getElementById('testJwtBtn').addEventListener('click', async function() {
+            const resultElement = document.getElementById('jwt-test-result');
+            const contentElement = document.getElementById('jwt-result-content');
+            
+            resultElement.classList.remove('d-none');
+            contentElement.innerHTML = 'Testing JWT authentication...';
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                // Display token information
+                let tokenInfo = 'Stored Token: ';
+                if (token) {
+                    const tokenParts = token.split('.');
+                    if (tokenParts.length === 3) {
+                        try {
+                            const header = JSON.parse(atob(tokenParts[0]));
+                            const payload = JSON.parse(atob(tokenParts[1]));
+                            tokenInfo += `\n✅ Valid JWT format\nHeader: ${JSON.stringify(header, null, 2)}\nPayload: ${JSON.stringify(payload, null, 2)}`;
+                        } catch (e) {
+                            tokenInfo += `\n❌ Invalid JWT format: ${e.message}`;
+                        }
+                    } else {
+                        tokenInfo += `\n❌ Invalid JWT format (expected 3 parts)`;
+                    }
+                } else {
+                    tokenInfo += '\n❌ No token found in localStorage';
+                }
+                
+                // Test the API
+                try {
+                    const response = await fetch('/api/auth/test-jwt', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    contentElement.innerHTML = `${tokenInfo}\n\nAPI Test Result:\nStatus: ${response.status}\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    
+                } catch (apiError) {
+                    contentElement.innerHTML = `${tokenInfo}\n\nAPI Test Failed:\n${apiError.message}`;
+                }
+                
+            } catch (error) {
+                contentElement.innerHTML = `Error testing JWT: ${error.message}`;
+            }
+        });
     </script>
 </body>
 </html>

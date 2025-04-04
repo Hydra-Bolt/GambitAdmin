@@ -3,12 +3,17 @@ Authentication routes for the Gambit Admin API.
 Handles login, logout, and password management.
 """
 
+import logging
+import traceback
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from datetime import datetime
 from models import AdminModel, db
 from utils.auth import create_auth_token
 from utils.response_formatter import format_response, format_error
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -74,12 +79,20 @@ def login():
         # Generate token
         token = create_auth_token(admin.id)
         
-        return format_response({
+        # Create the response with the token and admin data
+        response = format_response({
             'token': token,
             'admin': admin.to_dict()
         })
+        
+        # Log the response for debugging
+        logger.debug(f"Login response: {response.data}")
+        
+        return response
     
     except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        logger.error(traceback.format_exc())
         return format_error(f"Login error: {str(e)}")
 
 @auth_bp.route('/me', methods=['GET'])
