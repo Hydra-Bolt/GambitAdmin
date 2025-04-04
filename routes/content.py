@@ -20,6 +20,8 @@ content_bp = Blueprint('content', __name__)
 
 # FAQ Routes
 @content_bp.route('/faqs', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def get_faqs():
     """Get all FAQs with optional filtering"""
     try:
@@ -49,6 +51,8 @@ def get_faqs():
         return format_error(str(e)), 500
 
 @content_bp.route('/faqs/<int:faq_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def get_faq(faq_id):
     """Get a specific FAQ by ID"""
     try:
@@ -196,6 +200,8 @@ def delete_faq(faq_id):
 
 # Content Pages Routes
 @content_bp.route('/pages', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def get_content_pages():
     """Get all content pages with optional filtering"""
     try:
@@ -225,6 +231,8 @@ def get_content_pages():
         return format_error(str(e)), 500
 
 @content_bp.route('/pages/<int:page_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.CONTENT)
 def get_content_page(page_id):
     """Get a specific content page by ID"""
     try:

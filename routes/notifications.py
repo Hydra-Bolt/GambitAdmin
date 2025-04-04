@@ -1,14 +1,18 @@
 from flask import Blueprint, request, jsonify
-from models import NotificationModel, notifications_data
+from models import NotificationModel, notifications_data, PermissionType
 from utils.response_formatter import format_response, format_error
 from datetime import datetime
 import uuid
 from app import db
 from sqlalchemy import or_
+from flask_jwt_extended import jwt_required
+from utils.auth import require_permission
 
 notifications_bp = Blueprint('notifications', __name__)
 
 @notifications_bp.route('/', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.NOTIFICATION)
 def get_notifications():
     """Get all notifications with optional filtering"""
     target_type = request.args.get('target_type')
@@ -40,6 +44,8 @@ def get_notifications():
 
 
 @notifications_bp.route('/<int:notification_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.NOTIFICATION)
 def get_notification(notification_id):
     """Get a specific notification by ID"""
     notification = NotificationModel.query.get(notification_id)
@@ -51,6 +57,8 @@ def get_notification(notification_id):
 
 
 @notifications_bp.route('/', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.NOTIFICATION)
 def create_notification():
     """Create a new notification"""
     data = request.json
@@ -91,6 +99,8 @@ def create_notification():
 
 
 @notifications_bp.route('/<int:notification_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.NOTIFICATION)
 def update_notification(notification_id):
     """Update an existing notification"""
     notification = NotificationModel.query.get(notification_id)
@@ -130,6 +140,8 @@ def update_notification(notification_id):
 
 
 @notifications_bp.route('/<int:notification_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.NOTIFICATION)
 def delete_notification(notification_id):
     """Delete a notification"""
     notification = NotificationModel.query.get(notification_id)
@@ -151,6 +163,8 @@ def delete_notification(notification_id):
 
 
 @notifications_bp.route('/<int:notification_id>/send', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.NOTIFICATION)
 def send_notification(notification_id):
     """Send a notification (mark it as sent)"""
     notification = NotificationModel.query.get(notification_id)

@@ -3,8 +3,11 @@ import logging
 from datetime import datetime
 from app import db
 from sqlalchemy import desc
+from flask_jwt_extended import jwt_required
 from models import UserModel, UserActivityModel, TeamModel, LeagueModel, PlayerModel, SubscriberModel
 from utils.response_formatter import format_response, format_error
+from utils.auth import require_permission
+from models import PermissionType
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -13,6 +16,8 @@ logger = logging.getLogger(__name__)
 users_bp = Blueprint('users', __name__)
 
 @users_bp.route('/', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def get_users():
     """Get all users with optional filtering"""
     try:
@@ -35,6 +40,8 @@ def get_users():
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def get_user(user_id):
     """Get a specific user by ID"""
     try:
@@ -47,6 +54,8 @@ def get_user(user_id):
         return format_error(str(e), status_code=500)
         
 @users_bp.route('/uuid/<string:user_uuid>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def get_user_by_uuid(user_uuid):
     """Get a specific user by UUID"""
     try:
@@ -59,6 +68,8 @@ def get_user_by_uuid(user_uuid):
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def create_user():
     """Create a new user"""
     try:
@@ -100,6 +111,8 @@ def create_user():
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def update_user(user_id):
     """Update an existing user"""
     try:
@@ -127,6 +140,8 @@ def update_user(user_id):
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def delete_user(user_id):
     """Delete a user"""
     try:
@@ -149,6 +164,8 @@ def delete_user(user_id):
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/stats', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def get_user_stats():
     """Get user statistics"""
     try:
@@ -177,6 +194,8 @@ def get_user_stats():
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/activity', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def get_user_activity():
     """Get user activity data for charting"""
     try:
@@ -208,6 +227,8 @@ def get_user_activity():
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/profile/uuid/<string:user_uuid>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def get_user_profile(user_uuid):
     """Get a detailed user profile by UUID with favorites data"""
     try:
@@ -274,6 +295,8 @@ def get_user_profile(user_uuid):
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/profile/uuid/<string:user_uuid>/update-favorites', methods=['PUT'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def update_user_favorites(user_uuid):
     """Update a user's favorite sports, teams, and players"""
     try:
@@ -307,6 +330,8 @@ def update_user_favorites(user_uuid):
         return format_error(str(e), status_code=500)
 
 @users_bp.route('/profile/uuid/<string:user_uuid>/restrict', methods=['POST'])
+@jwt_required()
+@require_permission(PermissionType.USERS)
 def restrict_user(user_uuid):
     """Restrict a user by changing their status to 'suspended'"""
     try:

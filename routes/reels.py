@@ -2,8 +2,10 @@ from flask import Blueprint, request, jsonify
 import logging
 from app import db
 from sqlalchemy import desc
-from models import ReelModel, PlayerModel, TeamModel, LeagueModel
+from flask_jwt_extended import jwt_required
+from models import ReelModel, PlayerModel, TeamModel, LeagueModel, PermissionType
 from utils.response_formatter import format_response, format_error
+from utils.auth import require_permission
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -11,6 +13,8 @@ logger = logging.getLogger(__name__)
 reels_bp = Blueprint('reels', __name__)
 
 @reels_bp.route('/', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.REELS)
 def get_reels():
     """Get all reels with optional filtering"""
     try:
@@ -44,6 +48,8 @@ def get_reels():
         return format_error(str(e), status_code=500)
 
 @reels_bp.route('/<int:reel_id>', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.REELS)
 def get_reel(reel_id):
     """Get a specific reel by ID"""
     try:
@@ -77,6 +83,8 @@ def get_reel(reel_id):
         return format_error(str(e), status_code=500)
 
 @reels_bp.route('/popular', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.REELS)
 def get_popular_reels():
     """Get most popular reels"""
     try:
@@ -97,6 +105,8 @@ def get_popular_reels():
         return format_error(str(e), status_code=500)
 
 @reels_bp.route('/with-player-details', methods=['GET'])
+@jwt_required()
+@require_permission(PermissionType.REELS)
 def get_reels_with_player_details():
     """Get all reels with player, league, and team details for the manage reels page"""
     try:

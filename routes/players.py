@@ -1,10 +1,14 @@
 from flask import Blueprint, request, jsonify
 from models import players_data, reels_data
 from utils.response_formatter import format_response, format_error
+from flask_jwt_extended import jwt_required
+from utils.auth import require_permission
+from models import PermissionType
 
 players_bp = Blueprint('players', __name__)
 
 @players_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_players():
     """Get all players with optional filtering"""
     try:
@@ -31,6 +35,7 @@ def get_players():
         return format_error(f"Error retrieving players: {str(e)}")
 
 @players_bp.route('/<int:player_id>', methods=['GET'])
+@jwt_required()
 def get_player(player_id):
     """Get a specific player by ID"""
     try:
@@ -51,6 +56,7 @@ def get_player(player_id):
         return format_error(f"Error retrieving player: {str(e)}")
 
 @players_bp.route('/popular', methods=['GET'])
+@jwt_required()
 def get_popular_players():
     """Get most popular players"""
     try:

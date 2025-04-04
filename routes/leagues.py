@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 leagues_bp = Blueprint('leagues', __name__)
 
 @leagues_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_leagues():
     """Get all leagues with optional filtering"""
     try:
@@ -46,6 +47,7 @@ def get_leagues():
         return format_error(str(e)), 500
 
 @leagues_bp.route('/<int:league_id>', methods=['GET'])
+@jwt_required()
 def get_league(league_id):
     """Get a specific league by ID"""
     try:
@@ -196,6 +198,7 @@ def delete_league(league_id):
         return format_error(str(e)), 500
 
 @leagues_bp.route('/popular', methods=['GET'])
+@jwt_required()
 def get_popular_leagues():
     """Get most popular leagues"""
     try:
