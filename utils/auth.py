@@ -67,31 +67,24 @@ def auth_required(f):
     """Decorator to check if user is authenticated for template routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Skip authentication check for login page and API docs
+        # Skip authentication check for login page and static files
         if request.path == '/login' or request.path.startswith('/static/'):
             return f(*args, **kwargs)
+
+        auth_header = request.headers.get('Authorization', '')
+        logger.debug(f"Auth header: {auth_header}")
         
-        # Use a more permissive approach for the index page since we're handling auth in JS
-        if request.path == '/':
-            # Check if we're trying to directly access the index.html
-            auth_header = request.headers.get('Authorization', '')
-            if auth_header and auth_header.startswith('Bearer '):
-                try:
-                    # Try to verify JWT if it's present
-                    verify_jwt_in_request()
-                    logger.debug("JWT verification successful for index page")
-                except Exception as e:
-                    # If verification fails, still show the page and let JS handle it
-                    logger.error(f"JWT verification error on index page: {str(e)}")
-            # Always render the index page and let client-side JS handle redirect if needed
-            return f(*args, **kwargs)
-        
-        # For all other pages, check JWT token
-        try:
-            auth_header = request.headers.get('Authorization', '')
-            logger.debug(f"Auth header: {auth_header}")
-            
-            # If no valid Authorization header, redirect to login
+        if auth_header and auth_header.startswith('Bearer '):
+            try:
+                verify_jwt_in_request()
+                logger.debug("JWT verification successful")
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"JWT verification error: {str(e)}")
+                return redirect(url_for('login_page'))
+        else:
+            logger.debug("No valid Authorization header")
+            return redirect(url_for('login_page'))
             if not auth_header or not auth_header.startswith('Bearer '):
                 logger.debug("No valid Authorization header, redirecting to login")
                 return redirect(url_for('login_page'))
