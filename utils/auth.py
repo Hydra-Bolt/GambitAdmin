@@ -1,3 +1,4 @@
+
 """
 Authentication utilities for the Gambit Admin API.
 Handles JWT token generation, validation, and permission checks.
@@ -67,24 +68,14 @@ def auth_required(f):
     """Decorator to check if user is authenticated for template routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Skip authentication check for login page and static files
-        if request.path == '/login' or request.path.startswith('/static/'):
-            return f(*args, **kwargs)
-
-        auth_header = request.headers.get('Authorization', '')
-        logger.debug(f"Auth header: {auth_header}")
-        
-        if auth_header and auth_header.startswith('Bearer '):
-            try:
-                verify_jwt_in_request()
-                logger.debug("JWT verification successful")
+        try:
+            # Skip authentication check for login page and static files
+            if request.path == '/login' or request.path.startswith('/static/'):
                 return f(*args, **kwargs)
-            except Exception as e:
-                logger.error(f"JWT verification error: {str(e)}")
-                return redirect(url_for('login_page'))
-        else:
-            logger.debug("No valid Authorization header")
-            return redirect(url_for('login_page'))
+
+            auth_header = request.headers.get('Authorization', '')
+            logger.debug(f"Auth header: {auth_header}")
+            
             if not auth_header or not auth_header.startswith('Bearer '):
                 logger.debug("No valid Authorization header, redirecting to login")
                 return redirect(url_for('login_page'))
