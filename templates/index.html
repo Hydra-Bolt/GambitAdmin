@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gambit Admin API</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <script>
+        // Authentication check
+        document.addEventListener('DOMContentLoaded', function() {
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken) {
+                // Redirect to login page if no auth token is found
+                window.location.href = '/login';
+            } else {
+                // Add the token to all future API requests
+                // This will be sent with fetch requests
+                document.token = authToken;
+            }
+        });
+    </script>
 </head>
 <body>
     <div class="container mt-5">
@@ -288,5 +302,61 @@
             </div>
         </div>
     </div>
+
+    <!-- Logout button -->
+    <div class="position-fixed bottom-0 end-0 p-3">
+        <button id="logoutBtn" class="btn btn-outline-danger">Logout</button>
+    </div>
+
+    <script>
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('adminData');
+            window.location.href = '/login';
+        });
+
+        // Function to make authenticated API requests
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Set default headers if not provided
+            if (!options.headers) {
+                options.headers = {};
+            }
+            
+            // Add authorization header
+            options.headers.Authorization = `Bearer ${token}`;
+            
+            // Add JSON content type if not already set
+            if (!options.headers['Content-Type'] && options.method !== 'GET') {
+                options.headers['Content-Type'] = 'application/json';
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                
+                // If unauthorized, redirect to login
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('adminData');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('API request failed:', error);
+                throw error;
+            }
+        }
+
+        // Example API call with authentication
+        // fetchWithAuth('/api/users/').then(res => res.json()).then(data => console.log(data));
+    </script>
 </body>
 </html>

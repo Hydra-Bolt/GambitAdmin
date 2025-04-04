@@ -6,8 +6,8 @@ Handles JWT token generation, validation, and permission checks.
 import logging
 from functools import wraps
 
-from flask import jsonify, g
-from flask_jwt_extended import create_access_token, verify_jwt_in_request, get_jwt_identity
+from flask import jsonify, g, request, redirect, url_for
+from flask_jwt_extended import create_access_token, verify_jwt_in_request, get_jwt_identity, jwt_required
 
 from models import AdminModel, PermissionType
 
@@ -62,6 +62,31 @@ def require_permission(permission):
         return wrapper
     
     return decorator
+
+def auth_required(f):
+    """Decorator to check if user is authenticated for template routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Skip authentication check for login page
+        if request.path == '/login':
+            return f(*args, **kwargs)
+            
+        # Check for Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        
+        # If no Authorization header, redirect to login
+        if not auth_header.startswith('Bearer '):
+            return redirect(url_for('login_page'))
+        
+        try:
+            # Verify JWT token - will raise exception if invalid
+            verify_jwt_in_request()
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Authentication error: {str(e)}")
+            return redirect(url_for('login_page'))
+    
+    return decorated_function
 
 def register_jwt_error_handlers(jwt):
     """Register error handlers for JWT token errors"""

@@ -6,6 +6,16 @@
     <title>Gambit Admin API Documentation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.5.0/swagger-ui.css">
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <script>
+        // Authentication check
+        document.addEventListener('DOMContentLoaded', function() {
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken) {
+                // Redirect to login page if no auth token is found
+                window.location.href = '/login';
+            }
+        });
+    </script>
     <style>
         body {
             background-color: #111827;
@@ -70,13 +80,20 @@
 </head>
 <body>
     <div class="container-fluid pt-4 pb-4">
-        <h1 class="mb-4">Gambit Admin API Documentation</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Gambit Admin API Documentation</h1>
+            <button id="logoutBtn" class="btn btn-outline-danger">Logout</button>
+        </div>
         <div id="swagger-ui"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.5.0/swagger-ui-bundle.js"></script>
     <script>
         window.onload = function() {
+            // Get token from localStorage
+            const token = localStorage.getItem('authToken');
+            
+            // Initialize Swagger UI with auth
             SwaggerUIBundle({
                 url: "/static/swagger.json",
                 dom_id: '#swagger-ui',
@@ -89,7 +106,19 @@
                 syntaxHighlight: {
                     activated: true,
                     theme: "monokai"
+                },
+                // Configure JWT authentication
+                requestInterceptor: (req) => {
+                    req.headers.Authorization = `Bearer ${token}`;
+                    return req;
                 }
+            });
+            
+            // Handle logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('adminData');
+                window.location.href = '/login';
             });
         };
     </script>

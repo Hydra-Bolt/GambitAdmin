@@ -93,13 +93,16 @@ app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(content_bp, url_prefix='/api/content')
 
 # Add routes for documentation and login
-from flask import render_template, redirect, url_for
+from flask import render_template, redirect, url_for, request
+from utils.auth import auth_required
 
 @app.route('/')
+@auth_required
 def index():
     return render_template('index.html')
 
 @app.route('/api/docs')
+@auth_required
 def api_docs():
     return render_template('swagger.html')
 
