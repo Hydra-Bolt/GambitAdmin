@@ -101,6 +101,11 @@ from utils.auth import auth_required
 def index():
     return render_template('index.html')
 
+@app.route('/dashboard')
+@auth_required
+def dashboard():
+    return render_template('dashboard.html')
+
 @app.route('/api/docs')
 @auth_required
 def api_docs():
