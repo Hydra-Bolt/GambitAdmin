@@ -92,8 +92,8 @@ app.register_blueprint(reels_bp, url_prefix='/api/reels')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(content_bp, url_prefix='/api/content')
 
-# Add routes for documentation
-from flask import render_template
+# Add routes for documentation and login
+from flask import render_template, redirect, url_for
 
 @app.route('/')
 def index():
@@ -102,6 +102,10 @@ def index():
 @app.route('/api/docs')
 def api_docs():
     return render_template('swagger.html')
+
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
 
 # Database initialization moved to main.py
 logger.info("Gambit Admin API configured")
