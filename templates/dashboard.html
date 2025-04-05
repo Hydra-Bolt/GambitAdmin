@@ -692,11 +692,19 @@
                 }
                 
                 const result = await response.json();
+                if (!result.data) {
+                    throw new Error('Invalid response format from API');
+                }
+                
                 return result.data;
             } catch (error) {
                 console.error('Error fetching subscriptions:', error);
-                showNotification('Error fetching subscriptions: ' + error.message, 'error');
-                return { items: [], pagination: { total_pages: 0, current_page: 1 } };
+                if (typeof showNotification === 'function') {
+                    showNotification('Error fetching subscriptions: ' + error.message, 'error');
+                } else {
+                    console.error('Error fetching subscriptions:', error.message);
+                }
+                return { items: [], pagination: { total_pages: 0, current_page: 1, has_next: false, has_prev: false } };
             }
         }
 
@@ -759,22 +767,67 @@
             
             paginationNumbers.innerHTML = '';
             
-            for (let i = 1; i <= paginationData.total_pages; i++) {
+            const currentPage = paginationData.current_page;
+            const totalPages = paginationData.total_pages;
+            
+            // Always show first page
+            addPageButton(1, currentPage);
+            
+            // Show ellipsis after first page if needed
+            if (currentPage > 3) {
+                addEllipsis();
+            }
+            
+            // Show one page before current if not first page
+            if (currentPage > 2) {
+                addPageButton(currentPage - 1, currentPage);
+            }
+            
+            // Show current page if not first
+            if (currentPage !== 1) {
+                addPageButton(currentPage, currentPage);
+            }
+            
+            // Show one page after current if not last page
+            if (currentPage < totalPages - 1) {
+                addPageButton(currentPage + 1, currentPage);
+            }
+            
+            // Show ellipsis before last page if needed
+            if (currentPage < totalPages - 2) {
+                addEllipsis();
+            }
+            
+            // Always show last page if not first page
+            if (totalPages > 1) {
+                addPageButton(totalPages, currentPage);
+            }
+            
+            // Helper function to add page button
+            function addPageButton(pageNum, currentPage) {
                 const pageBtn = document.createElement('button');
-                pageBtn.textContent = i;
+                pageBtn.textContent = pageNum;
                 pageBtn.classList.add('px-3', 'py-1', 'rounded');
                 
-                if (i === paginationData.current_page) {
+                if (pageNum === currentPage) {
                     pageBtn.classList.add('bg-[#2D1F42]', 'text-white');
                 } else {
                     pageBtn.classList.add('bg-[#1A1630]', 'hover:bg-[#2D1F42]');
                 }
                 
                 pageBtn.addEventListener('click', function() {
-                    loadSubscriptionsPage(i);
+                    loadSubscriptionsPage(pageNum);
                 });
                 
                 paginationNumbers.appendChild(pageBtn);
+            }
+            
+            // Helper function to add ellipsis
+            function addEllipsis() {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                ellipsis.classList.add('px-2', 'py-1', 'text-gray-400');
+                paginationNumbers.appendChild(ellipsis);
             }
             
             prevBtn.disabled = !paginationData.has_prev;
@@ -785,13 +838,13 @@
             
             prevBtn.onclick = function() {
                 if (paginationData.has_prev) {
-                    loadSubscriptionsPage(paginationData.current_page - 1);
+                    loadSubscriptionsPage(currentPage - 1);
                 }
             };
             
             nextBtn.onclick = function() {
                 if (paginationData.has_next) {
-                    loadSubscriptionsPage(paginationData.current_page + 1);
+                    loadSubscriptionsPage(currentPage + 1);
                 }
             };
         }
@@ -805,11 +858,21 @@
             if (typeFilter) filters.type = typeFilter;
             if (statusFilter) filters.status = statusFilter;
             
-            const result = await fetchSubscriptions(page, filters);
-            
-            if (result && result.items) {
-                displaySubscriptions(result.items);
-                setupPagination(result.pagination);
+            try {
+                const result = await fetchSubscriptions(page, filters);
+                
+                if (result && result.items) {
+                    displaySubscriptions(result.items);
+                    setupPagination(result.pagination);
+                } else {
+                    console.error('Invalid response format: missing items property');
+                    displaySubscriptions([]);
+                    setupPagination({ total_pages: 1, current_page: 1, has_next: false, has_prev: false });
+                }
+            } catch (error) {
+                console.error('Error loading subscriptions page:', error);
+                displaySubscriptions([]);
+                setupPagination({ total_pages: 1, current_page: 1, has_next: false, has_prev: false });
             }
         }
 
