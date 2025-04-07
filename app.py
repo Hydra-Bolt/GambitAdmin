@@ -25,7 +25,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 
 # Configure the database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+# In app.py, you could add a default value:
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "postgresql://gambit_user:muneeb@localhost:5432/gambit_admin")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -34,7 +35,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # JWT configuration
 # Use a simple fixed key for development
-app.config["JWT_SECRET_KEY"] = "dev-key-123456"
+app.config["JWT_SECRET_KEY"] = "hydra-bolt"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # 1 hour
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)  # 30 days
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
@@ -75,13 +76,11 @@ from routes.content import content_bp
 from routes.auth import auth_bp
 from routes.roles import roles_bp
 from routes.admins import admins_bp
+from routes.odds import odds_bp
+from routes.user_activity import user_activity_bp
+from routes.user_auth import user_auth_bp  # Import user auth routes
 
-# Register authentication and admin blueprints
-app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(roles_bp, url_prefix='/api/roles')
-app.register_blueprint(admins_bp, url_prefix='/api/admins')
-
-# Register existing blueprints
+# Register blueprints
 app.register_blueprint(subscribers_bp, url_prefix='/api/subscribers')
 app.register_blueprint(users_bp, url_prefix='/api/users')
 app.register_blueprint(leagues_bp, url_prefix='/api/leagues')
@@ -91,6 +90,12 @@ app.register_blueprint(players_bp, url_prefix='/api/players')
 app.register_blueprint(reels_bp, url_prefix='/api/reels')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(content_bp, url_prefix='/api/content')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(roles_bp, url_prefix='/api/roles')
+app.register_blueprint(admins_bp, url_prefix='/api/admins')
+app.register_blueprint(odds_bp, url_prefix='/api/odds')  # Register the odds blueprint
+app.register_blueprint(user_activity_bp, url_prefix='/api/user-activity')
+app.register_blueprint(user_auth_bp, url_prefix='/api/user-auth')  # Register the user auth blueprint
 
 # Import sidebar manager
 from utils.sidebar_manager import get_sidebar_items, get_active_sidebar_item
@@ -166,6 +171,46 @@ def roles_page():
 @auth_required
 def admins_page():
     return render_template('dashboard.html')
+
+@app.route('/odds')
+@auth_required
+def odds_page():
+    return render_template('dashboard.html')
+
+@app.route('/user/login')
+def user_login_page():
+    return render_template('user_login.html')
+
+@app.route('/user/signup')
+def user_signup_page():
+    # Both login and signup use the same template with toggled forms
+    return render_template('user_login.html')
+
+@app.route('/user/dashboard')
+def user_dashboard_page():
+    # User dashboard will verify authentication via JavaScript
+    return render_template('user_dashboard.html')
+
+# Routes for specific user dashboard sections
+@app.route('/user/profile')
+def user_profile_page():
+    return render_template('user_dashboard.html')
+
+@app.route('/user/leagues')
+def user_leagues_page():
+    return render_template('user_dashboard.html')
+
+@app.route('/user/teams')
+def user_teams_page():
+    return render_template('user_dashboard.html')
+
+@app.route('/user/players')
+def user_players_page():
+    return render_template('user_dashboard.html')
+
+@app.route('/user/reels')
+def user_reels_page():
+    return render_template('user_dashboard.html')
 
 # Database initialization moved to main.py
 logger.info("Gambit Admin API configured")

@@ -41,6 +41,14 @@ ADMIN_SIDEBAR = [
         "permission": "view_subscriptions"
     },
     {
+        "id": "odds",
+        "title": "Sports Odds", 
+        "url": "/odds",
+        "icon": "percentage",
+        "implemented": True,
+        "permission": "odds"
+    },
+    {
         "id": "reels",
         "title": "Manage Reels", 
         "url": "/reels",

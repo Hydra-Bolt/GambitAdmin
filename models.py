@@ -39,6 +39,7 @@ class PermissionType:
     USERS = "users"
     SUBSCRIBERS = "subscribers"
     ROLES = "roles"
+    ODDS = "odds"  # New permission for odds data
     ALL = "all"
 
 # Admin user model
@@ -142,7 +143,7 @@ class SubscriberModel(db.Model):
             "updated_at": self.updated_at.isoformat()
         }
 
-class UserModel(db.Model):
+class UserModel(db.Model, UserMixin):
     __tablename__ = 'users'
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -150,13 +151,15 @@ class UserModel(db.Model):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     profile_image: Mapped[str] = mapped_column(String(255), nullable=True)
     bio: Mapped[str] = mapped_column(Text, nullable=True)
-    registration_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    last_login: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False)  # active, inactive, suspended
+    registration_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    last_login: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active, inactive, suspended
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    role: Mapped[str] = mapped_column(String(20), default="user")  # user, premium
     
     # User favorites
     favorite_sports: Mapped[List[str]] = mapped_column(ARRAY(String), nullable=True, default=[])
@@ -165,6 +168,18 @@ class UserModel(db.Model):
     
     # Subscription relationship - to be implemented if needed
     # subscription = relationship("SubscriberModel", backref="user", uselist=False)
+    
+    def set_password(self, password):
+        """Hash the password for storage"""
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    
+    def check_password(self, password):
+        """Check if provided password matches the stored hash"""
+        return bcrypt.check_password_hash(self.password_hash, password)
+        
+    def is_premium(self):
+        """Check if user has premium access"""
+        return self.role == "premium"
     
     def to_dict(self):
         return {
@@ -176,8 +191,9 @@ class UserModel(db.Model):
             "profile_image": self.profile_image,
             "bio": self.bio,
             "registration_date": self.registration_date.isoformat(),
-            "last_login": self.last_login.isoformat(),
+            "last_login": self.last_login.isoformat() if self.last_login else None,
             "status": self.status,
+            "role": self.role,
             "favorite_sports": self.favorite_sports or [],
             "favorite_teams": self.favorite_teams or [],
             "favorite_players": self.favorite_players or [],
@@ -383,6 +399,37 @@ class NotificationModel(db.Model):
             "updated_at": self.updated_at.isoformat()
         }
 
+# New model for sports odds data
+class OddsModel(db.Model):
+    __tablename__ = 'odds'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sport_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    sport_title: Mapped[str] = mapped_column(String(128), nullable=False)
+    event_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    event_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    home_team: Mapped[str] = mapped_column(String(128), nullable=False)
+    away_team: Mapped[str] = mapped_column(String(128), nullable=False)
+    bookmakers: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    last_update: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "sport_key": self.sport_key,
+            "sport_title": self.sport_title,
+            "event_id": self.event_id,
+            "event_time": self.event_time.isoformat(),
+            "home_team": self.home_team,
+            "away_team": self.away_team,
+            "bookmakers": self.bookmakers,
+            "last_update": self.last_update.isoformat(),
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
 # Record structures
 class Subscriber:
     @staticmethod
@@ -550,6 +597,27 @@ class Notification:
             "target_user_id": target_user_id,  # Only used if target_type is "user"
             "sent": sent,  # Whether the notification has been sent
             "created_at": created_at.isoformat() if created_at else now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+
+# Odds data helper class
+class Odds:
+    @staticmethod
+    def create_record(id: int, sport_key: str, sport_title: str, event_id: str, 
+                      event_time: datetime, home_team: str, away_team: str, 
+                      bookmakers: dict) -> Dict[str, Any]:
+        now = datetime.now()
+        return {
+            "id": id,
+            "sport_key": sport_key,
+            "sport_title": sport_title,
+            "event_id": event_id,
+            "event_time": event_time.isoformat(),
+            "home_team": home_team,
+            "away_team": away_team,
+            "bookmakers": bookmakers,
+            "last_update": now.isoformat(),
+            "created_at": now.isoformat(),
             "updated_at": now.isoformat()
         }
 

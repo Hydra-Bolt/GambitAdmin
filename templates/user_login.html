@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gambit - User Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo img {
+            max-width: 150px;
+        }
+        .form-control {
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .btn-primary {
+            width: 100%;
+            border-radius: 4px;
+            background-color: #3f51b5;
+            border-color: #3f51b5;
+            padding: 10px;
+        }
+        .btn-primary:hover {
+            background-color: #303f9f;
+            border-color: #303f9f;
+        }
+        .alert {
+            margin-bottom: 20px;
+        }
+        .switch-form {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .switch-form a {
+            color: #3f51b5;
+            text-decoration: none;
+        }
+        .switch-form a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <div class="logo">
+                <h2>Gambit</h2>
+            </div>
+            
+            <div id="loginForm">
+                <h4 class="text-center mb-4">User Login</h4>
+                <div id="login-alert" class="alert alert-danger d-none"></div>
+                
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username or Email</label>
+                        <input type="text" class="form-control" id="username" placeholder="Enter your username or email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+                
+                <div class="switch-form">
+                    <p>Don't have an account? <a href="#" id="show-signup">Sign up now</a></p>
+                </div>
+            </div>
+            
+            <div id="signupForm" class="d-none">
+                <h4 class="text-center mb-4">Create an Account</h4>
+                <div id="signup-alert" class="alert alert-danger d-none"></div>
+                
+                <form id="signup-form">
+                    <div class="mb-3">
+                        <label for="signup-fullname" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="signup-fullname" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signup-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="signup-email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signup-username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="signup-username" placeholder="Choose a username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signup-password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="signup-password" placeholder="Choose a password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signup-confirm-password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="signup-confirm-password" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </form>
+                
+                <div class="switch-form">
+                    <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const showSignup = document.getElementById('show-signup');
+            const showLogin = document.getElementById('show-login');
+            
+            // Toggle between login and signup forms
+            showSignup.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginForm.classList.add('d-none');
+                signupForm.classList.remove('d-none');
+            });
+            
+            showLogin.addEventListener('click', function(e) {
+                e.preventDefault();
+                signupForm.classList.add('d-none');
+                loginForm.classList.remove('d-none');
+            });
+            
+            // Handle login form submission
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const loginAlert = document.getElementById('login-alert');
+                
+                // Clear previous alerts
+                loginAlert.classList.add('d-none');
+                
+                // Call login API
+                fetch('/api/user-auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Store tokens in localStorage
+                        localStorage.setItem('user_access_token', data.data.access_token);
+                        localStorage.setItem('user_refresh_token', data.data.refresh_token);
+                        
+                        // Redirect to user dashboard
+                        window.location.href = '/user/dashboard';
+                    } else {
+                        // Show error
+                        loginAlert.textContent = data.message;
+                        loginAlert.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    loginAlert.textContent = 'An error occurred. Please try again.';
+                    loginAlert.classList.remove('d-none');
+                });
+            });
+            
+            // Handle signup form submission
+            document.getElementById('signup-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const fullName = document.getElementById('signup-fullname').value;
+                const email = document.getElementById('signup-email').value;
+                const username = document.getElementById('signup-username').value;
+                const password = document.getElementById('signup-password').value;
+                const confirmPassword = document.getElementById('signup-confirm-password').value;
+                const signupAlert = document.getElementById('signup-alert');
+                
+                // Clear previous alerts
+                signupAlert.classList.add('d-none');
+                
+                // Validate passwords match
+                if (password !== confirmPassword) {
+                    signupAlert.textContent = 'Passwords do not match';
+                    signupAlert.classList.remove('d-none');
+                    return;
+                }
+                
+                // Call signup API
+                fetch('/api/user-auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        full_name: fullName,
+                        email: email,
+                        username: username,
+                        password: password
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Store tokens in localStorage
+                        localStorage.setItem('user_access_token', data.data.access_token);
+                        localStorage.setItem('user_refresh_token', data.data.refresh_token);
+                        
+                        // Redirect to user dashboard
+                        window.location.href = '/user/dashboard';
+                    } else {
+                        // Show error
+                        signupAlert.textContent = data.message;
+                        signupAlert.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Signup error:', error);
+                    signupAlert.textContent = 'An error occurred. Please try again.';
+                    signupAlert.classList.remove('d-none');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
