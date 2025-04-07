@@ -30,7 +30,7 @@ def test():
 
 @user_auth_bp.route('/signup', methods=['POST'])
 def signup():
-    """Register a new user account"""
+    """Register a new user account with email verification"""
     try:
         data = request.get_json()
         
@@ -49,7 +49,7 @@ def signup():
         if username_exists:
             return format_error("Username already taken", status_code=409)
         
-        # Create new user
+        # Create new user with email_verified set to False initially
         new_user = UserModel(
             uuid=str(uuid.uuid4()),
             email=data['email'],
@@ -58,6 +58,7 @@ def signup():
             registration_date=datetime.now(),
             last_login=datetime.now(),
             status='active',
+            email_verified=False,  # Mark as unverified initially
             profile_image=data.get('profile_image', f"https://ui-avatars.com/api/?name={data['username']}&background=random"),
             bio=data.get('bio', ''),
             role=data.get('role', 'user')  # Default role is 'user'
@@ -68,61 +69,31 @@ def signup():
         
         # Save to database
         db.session.add(new_user)
-        db.session.flush()  # Flush to get the new user's ID
+        db.session.commit()  # Commit to get the user ID
+
+        # Import the OTP functions
+        from utils.email_service import generate_otp, store_otp, send_otp_email
         
-       
+        # Generate and send OTP
+        otp = generate_otp()
+        store_otp(new_user.email, otp, purpose="signup")
+        otp_sent = send_otp_email(new_user.email, otp, purpose="signup")
         
-        # Get all active plans
-        plans = PlanModel.query.filter_by(is_active=True).all()
-        
-        if plans:
-            # Randomly select a plan
-            selected_plan = random.choice(plans)
+        if not otp_sent:
+            logger.warning(f"Failed to send OTP email to {new_user.email}")
             
-            # Set up subscription start and end dates
-            start_date = datetime.now()
-            end_date = start_date + timedelta(days=selected_plan.duration_days)
-            
-            # Create subscription with random payment method
-            payment_methods = ["credit_card", "paypal", "apple_pay", "google_pay"]
-            payment_method = random.choice(payment_methods)
-            
-            # Create a simple payment details object
-            payment_details = {
-                "last_four": f"{random.randint(1000, 9999)}",
-                "expiry": f"{random.randint(1, 12)}/24"
-            }
-            
-            # Create the subscription
-            subscription = SubscriberModel(
-                user_id=new_user.id,
-                plan_id=selected_plan.id,
-                start_date=start_date,
-                end_date=end_date,
-                status="active",
-                payment_method=payment_method,
-                payment_details=payment_details,
-                auto_renew=True,
-                created_at=start_date,
-                updated_at=start_date
-            )
-            
-            db.session.add(subscription)
-            logger.info(f"Created subscription plan '{selected_plan.name}' for user {new_user.id}")
-        else:
-            logger.warning("No active plans found. User created without subscription.")
-            
-        db.session.commit()
-        
-        # Generate JWT tokens
-        access_token = create_access_token(identity=str(new_user.id))
-        refresh_token = create_refresh_token(identity=str(new_user.id))
+        # Generate temporary access token that expires in 15 minutes (shorter duration)
+        access_token = create_access_token(
+            identity=str(new_user.id),
+            expires_delta=timedelta(minutes=15)
+        )
         
         return format_response({
-            'message': 'User registered successfully',
-            'user': new_user.to_dict(),
-            'access_token': access_token,
-            'refresh_token': refresh_token
+            'message': 'Account created. Please verify your email using the OTP sent to your email address.',
+            'user_id': new_user.id,
+            'email': new_user.email,
+            'temporary_token': access_token,
+            'requires_verification': True
         })
         
     except IntegrityError as e:
@@ -158,6 +129,29 @@ def login():
         # Check if account is active
         if user.status != 'active':
             return format_error("Your account has been deactivated or suspended", status_code=403)
+        
+        # Check if email is verified (skip for demo accounts if needed)
+        if not user.email_verified and not user.email.endswith('@example.com'):
+            # Import OTP functions to send a new verification code
+            from utils.email_service import generate_otp, store_otp, send_otp_email
+            
+            # Generate and send new OTP
+            otp = generate_otp()
+            store_otp(user.email, otp, purpose="signup")
+            send_otp_email(user.email, otp, purpose="signup")
+            
+            # Create a temporary token for verification flow
+            temp_token = create_access_token(
+                identity=str(user.id),
+                expires_delta=timedelta(minutes=15)
+            )
+            
+            return format_response({
+                'message': 'Email verification required',
+                'requires_verification': True,
+                'email': user.email,
+                'temporary_token': temp_token
+            }, status_code=200)
         
         # Update last login time
         user.last_login = datetime.now()
@@ -260,7 +254,7 @@ def update_user_profile():
 @user_auth_bp.route('/change-password', methods=['POST'])
 @jwt_required()
 def change_password():
-    """Change password for current user"""
+    """Change password for current user with OTP verification"""
     try:
         user_id = get_jwt_identity()
         
@@ -275,22 +269,52 @@ def change_password():
         
         data = request.get_json()
         
-        if not data or not data.get('current_password') or not data.get('new_password'):
-            return format_error("Missing current password or new password", status_code=400)
+        if not data or not data.get('current_password'):
+            return format_error("Current password is required", status_code=400)
         
         # Verify current password
         if not user.check_password(data['current_password']):
             return format_error("Current password is incorrect", status_code=400)
         
-        # Set new password
-        user.set_password(data['new_password'])
-        user.updated_at = datetime.now()
-        db.session.commit()
-        
-        return format_response({"message": "Password changed successfully"})
+        # If we have the OTP and new password, complete the password change
+        if data.get('otp') and data.get('new_password'):
+            # Import OTP verification functions
+            from utils.email_service import verify_otp, clear_otp
+            
+            if not verify_otp(user.email, data['otp']):
+                return format_error("Invalid or expired OTP", status_code=400)
+            
+            # Set new password
+            user.set_password(data['new_password'])
+            user.updated_at = datetime.now()
+            db.session.commit()
+            
+            # Clear OTP
+            clear_otp(user.email)
+            
+            return format_response({"message": "Password changed successfully"})
+        else:
+            # Start OTP verification process
+            from utils.email_service import generate_otp, store_otp, send_otp_email
+            
+            # Generate and store OTP
+            otp = generate_otp()
+            store_otp(user.email, otp, purpose="reset")
+            otp_sent = send_otp_email(user.email, otp, purpose="reset")
+            
+            if not otp_sent:
+                logger.warning(f"Failed to send OTP email to {user.email}")
+                return format_error("Failed to send verification code", status_code=500)
+                
+            return format_response({
+                "message": "Verification code sent to your email",
+                "email": user.email,
+                "requires_otp": True
+            })
     
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Error changing password: {str(e)}")
         return format_error(f"Error changing password: {str(e)}", status_code=500)
 
 @user_auth_bp.route('/subscription', methods=['GET'])
@@ -362,3 +386,192 @@ def get_user_subscription():
         logger.error(f"Error retrieving user subscription: {str(e)}")
         logger.error(traceback.format_exc())
         return format_error(f"Error retrieving subscription details: {str(e)}", status_code=500)
+
+@user_auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    """Verify OTP for account activation or password reset"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('otp') or not data.get('purpose'):
+            return format_error("Missing email, OTP, or purpose", status_code=400)
+        
+        # Import OTP verification functions
+        from utils.email_service import verify_otp, clear_otp
+        
+        email = data['email']
+        otp = data['otp']
+        purpose = data['purpose']
+        
+        # Verify OTP
+        if not verify_otp(email, otp):
+            return format_error("Invalid or expired OTP", status_code=400)
+        
+        # Process based on purpose
+        if purpose == "signup":
+            # Get user by email and verify their account
+            user = UserModel.query.filter_by(email=email).first()
+            if not user:
+                return format_error("User not found", status_code=404)
+            
+            user.email_verified = True
+            
+            # Get all active plans
+            plans = PlanModel.query.filter_by(is_active=True).all()
+            
+            if plans:
+                # Randomly select a plan
+                selected_plan = random.choice(plans)
+                
+                # Set up subscription start and end dates
+                start_date = datetime.now()
+                end_date = start_date + timedelta(days=selected_plan.duration_days)
+                
+                # Create subscription with random payment method
+                payment_methods = ["credit_card", "paypal", "apple_pay", "google_pay"]
+                payment_method = random.choice(payment_methods)
+                
+                # Create a simple payment details object
+                payment_details = {
+                    "last_four": f"{random.randint(1000, 9999)}",
+                    "expiry": f"{random.randint(1, 12)}/24"
+                }
+                
+                # Create the subscription
+                subscription = SubscriberModel(
+                    user_id=user.id,
+                    plan_id=selected_plan.id,
+                    start_date=start_date,
+                    end_date=end_date,
+                    status="active",
+                    payment_method=payment_method,
+                    payment_details=payment_details,
+                    auto_renew=True,
+                    created_at=start_date,
+                    updated_at=start_date
+                )
+                
+                db.session.add(subscription)
+                logger.info(f"Created subscription plan '{selected_plan.name}' for user {user.id}")
+            else:
+                logger.warning("No active plans found. User created without subscription.")
+                
+            db.session.commit()
+            
+            # Generate tokens for authentication
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
+            
+            # Clear the OTP from storage
+            clear_otp(email)
+            
+            return format_response({
+                'message': 'Account verified successfully',
+                'user': user.to_dict(),
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            })
+            
+        elif purpose == "reset":
+            # Clear the OTP from storage
+            clear_otp(email)
+            
+            # For password reset, return success and allow the next step
+            return format_response({
+                'message': 'OTP verified successfully. You can now set a new password.',
+                'email': email,
+                'can_reset': True
+            })
+            
+        else:
+            return format_error("Invalid verification purpose", status_code=400)
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"OTP verification error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return format_error(f"Verification error: {str(e)}", status_code=500)
+
+@user_auth_bp.route('/request-password-reset', methods=['POST'])
+def request_password_reset():
+    """Request password reset by sending OTP to email"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email'):
+            return format_error("Email is required", status_code=400)
+        
+        email = data['email']
+        
+        # Check if user exists
+        user = UserModel.query.filter_by(email=email).first()
+        if not user:
+            # For security, don't reveal if the email exists or not
+            return format_response({
+                'message': 'If the email address exists in our system, an OTP has been sent.'
+            })
+        
+        # Import OTP functions
+        from utils.email_service import generate_otp, store_otp, send_otp_email
+        
+        # Generate and send OTP
+        otp = generate_otp()
+        store_otp(email, otp, purpose="reset")
+        otp_sent = send_otp_email(email, otp, purpose="reset")
+        
+        if not otp_sent:
+            logger.warning(f"Failed to send OTP email to {email}")
+        
+        return format_response({
+            'message': 'If the email address exists in our system, an OTP has been sent.',
+            'email': email
+        })
+        
+    except Exception as e:
+        logger.error(f"Password reset request error: {str(e)}")
+        return format_error(f"Error processing request: {str(e)}", status_code=500)
+
+@user_auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password after OTP verification"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('new_password'):
+            return format_error("Email and new password are required", status_code=400)
+        
+        # Import OTP functions
+        from utils.email_service import is_otp_verified
+        
+        email = data['email']
+        new_password = data['new_password']
+        
+        # Check if OTP was verified for this email
+        if not is_otp_verified(email, purpose="reset"):
+            return format_error("OTP verification required before resetting password", status_code=400)
+        
+        # Find user and update password
+        user = UserModel.query.filter_by(email=email).first()
+        if not user:
+            return format_error("User not found", status_code=404)
+        
+        # Set new password
+        user.set_password(new_password)
+        user.updated_at = datetime.now()
+        db.session.commit()
+        
+        # Generate new tokens for immediate login
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
+        
+        return format_response({
+            'message': 'Password has been reset successfully',
+            'user': user.to_dict(),
+            'access_token': access_token,
+            'refresh_token': refresh_token
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Password reset error: {str(e)}")
+        return format_error(f"Error resetting password: {str(e)}", status_code=500)

@@ -54,6 +54,19 @@
         .switch-form a:hover {
             text-decoration: underline;
         }
+        /* OTP verification styles */
+        .otp-input {
+            letter-spacing: 10px;
+            font-size: 24px;
+            text-align: center;
+        }
+        .resend-link {
+            cursor: pointer;
+            color: #3f51b5;
+        }
+        .resend-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -66,6 +79,7 @@
             <div id="loginForm">
                 <h4 class="text-center mb-4">User Login</h4>
                 <div id="login-alert" class="alert alert-danger d-none"></div>
+                <div id="login-success" class="alert alert-success d-none"></div>
                 
                 <form id="login-form">
                     <div class="mb-3">
@@ -79,6 +93,10 @@
                     <button type="submit" class="btn btn-primary">Login</button>
                 </form>
                 
+                <div class="mt-3 text-center">
+                    <a href="#" id="forgot-password" class="text-decoration-none">Forgot Password?</a>
+                </div>
+                
                 <div class="switch-form">
                     <p>Don't have an account? <a href="#" id="show-signup">Sign up now</a></p>
                 </div>
@@ -87,6 +105,7 @@
             <div id="signupForm" class="d-none">
                 <h4 class="text-center mb-4">Create an Account</h4>
                 <div id="signup-alert" class="alert alert-danger d-none"></div>
+                <div id="signup-success" class="alert alert-success d-none"></div>
                 
                 <form id="signup-form">
                     <div class="mb-3">
@@ -116,6 +135,68 @@
                     <p>Already have an account? <a href="#" id="show-login">Login</a></p>
                 </div>
             </div>
+            
+            <!-- OTP Verification Form -->
+            <div id="otpVerificationForm" class="d-none">
+                <h4 class="text-center mb-4">Verify Your Email</h4>
+                <div id="otp-alert" class="alert alert-danger d-none"></div>
+                <div id="otp-success" class="alert alert-success d-none"></div>
+                
+                <p class="text-center">We've sent a verification code to <strong id="verification-email"></strong></p>
+                
+                <form id="otp-form">
+                    <div class="mb-3">
+                        <label for="otp" class="form-label">Enter Verification Code</label>
+                        <input type="text" class="form-control otp-input" id="otp" placeholder="000000" maxlength="6" required>
+                    </div>
+                    <input type="hidden" id="otp-email" value="">
+                    <input type="hidden" id="otp-purpose" value="">
+                    <button type="submit" class="btn btn-primary">Verify</button>
+                </form>
+                
+                <div class="mt-3 text-center">
+                    <p>Didn't receive the code? <span id="resend-otp" class="resend-link">Resend</span></p>
+                </div>
+            </div>
+            
+            <!-- Password Reset Request Form -->
+            <div id="forgotPasswordForm" class="d-none">
+                <h4 class="text-center mb-4">Reset Your Password</h4>
+                <div id="forgot-alert" class="alert alert-danger d-none"></div>
+                <div id="forgot-success" class="alert alert-success d-none"></div>
+                
+                <form id="forgot-form">
+                    <div class="mb-3">
+                        <label for="forgot-email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="forgot-email" placeholder="Enter your email" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reset Code</button>
+                </form>
+                
+                <div class="switch-form">
+                    <p>Remember your password? <a href="#" id="show-login-from-forgot">Back to Login</a></p>
+                </div>
+            </div>
+            
+            <!-- New Password Form -->
+            <div id="newPasswordForm" class="d-none">
+                <h4 class="text-center mb-4">Set New Password</h4>
+                <div id="new-password-alert" class="alert alert-danger d-none"></div>
+                <div id="new-password-success" class="alert alert-success d-none"></div>
+                
+                <form id="new-password-form">
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="new-password" placeholder="Enter new password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm-new-password" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirm-new-password" placeholder="Confirm new password" required>
+                    </div>
+                    <input type="hidden" id="reset-email" value="">
+                    <button type="submit" class="btn btn-primary">Reset Password</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -123,8 +204,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
             const signupForm = document.getElementById('signupForm');
+            const otpVerificationForm = document.getElementById('otpVerificationForm');
+            const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+            const newPasswordForm = document.getElementById('newPasswordForm');
             const showSignup = document.getElementById('show-signup');
             const showLogin = document.getElementById('show-login');
+            const forgotPassword = document.getElementById('forgot-password');
+            const showLoginFromForgot = document.getElementById('show-login-from-forgot');
             
             // Toggle between login and signup forms
             showSignup.addEventListener('click', function(e) {
@@ -138,6 +224,18 @@
                 signupForm.classList.add('d-none');
                 loginForm.classList.remove('d-none');
             });
+
+            forgotPassword.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginForm.classList.add('d-none');
+                forgotPasswordForm.classList.remove('d-none');
+            });
+
+            showLoginFromForgot.addEventListener('click', function(e) {
+                e.preventDefault();
+                forgotPasswordForm.classList.add('d-none');
+                loginForm.classList.remove('d-none');
+            });
             
             // Handle login form submission
             document.getElementById('login-form').addEventListener('submit', function(e) {
@@ -146,9 +244,11 @@
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 const loginAlert = document.getElementById('login-alert');
+                const loginSuccess = document.getElementById('login-success');
                 
                 // Clear previous alerts
                 loginAlert.classList.add('d-none');
+                loginSuccess.classList.add('d-none');
                 
                 // Call login API
                 fetch('/api/user-auth/login', {
@@ -193,9 +293,11 @@
                 const password = document.getElementById('signup-password').value;
                 const confirmPassword = document.getElementById('signup-confirm-password').value;
                 const signupAlert = document.getElementById('signup-alert');
+                const signupSuccess = document.getElementById('signup-success');
                 
                 // Clear previous alerts
                 signupAlert.classList.add('d-none');
+                signupSuccess.classList.add('d-none');
                 
                 // Validate passwords match
                 if (password !== confirmPassword) {
@@ -220,12 +322,16 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Store tokens in localStorage
-                        localStorage.setItem('user_access_token', data.data.access_token);
-                        localStorage.setItem('user_refresh_token', data.data.refresh_token);
+                        // Show success message
+                        signupSuccess.textContent = 'Account created successfully. Please verify your email.';
+                        signupSuccess.classList.remove('d-none');
                         
-                        // Redirect to user dashboard
-                        window.location.href = '/user/dashboard';
+                        // Show OTP verification form
+                        signupForm.classList.add('d-none');
+                        otpVerificationForm.classList.remove('d-none');
+                        document.getElementById('verification-email').textContent = email;
+                        document.getElementById('otp-email').value = email;
+                        document.getElementById('otp-purpose').value = 'signup';
                     } else {
                         // Show error
                         signupAlert.textContent = data.message;
@@ -236,6 +342,197 @@
                     console.error('Signup error:', error);
                     signupAlert.textContent = 'An error occurred. Please try again.';
                     signupAlert.classList.remove('d-none');
+                });
+            });
+
+            // Handle OTP verification form submission
+            document.getElementById('otp-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const otp = document.getElementById('otp').value;
+                const email = document.getElementById('otp-email').value;
+                const purpose = document.getElementById('otp-purpose').value;
+                const otpAlert = document.getElementById('otp-alert');
+                const otpSuccess = document.getElementById('otp-success');
+                
+                // Clear previous alerts
+                otpAlert.classList.add('d-none');
+                otpSuccess.classList.add('d-none');
+                
+                // Call OTP verification API
+                fetch('/api/user-auth/verify-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        otp: otp,
+                        purpose: purpose
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        otpSuccess.textContent = 'Verification successful.';
+                        otpSuccess.classList.remove('d-none');
+                        
+                        if (purpose === 'signup') {
+                            // Redirect to user dashboard
+                            window.location.href = '/user/dashboard';
+                        } else if (purpose === 'password_reset') {
+                            // Show new password form
+                            otpVerificationForm.classList.add('d-none');
+                            newPasswordForm.classList.remove('d-none');
+                            document.getElementById('reset-email').value = email;
+                        }
+                    } else {
+                        otpAlert.textContent = data.message;
+                        otpAlert.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('OTP verification error:', error);
+                    otpAlert.textContent = 'An error occurred. Please try again.';
+                    otpAlert.classList.remove('d-none');
+                });
+            });
+
+            // Handle resend OTP
+            document.getElementById('resend-otp').addEventListener('click', function() {
+                const email = document.getElementById('otp-email').value;
+                const purpose = document.getElementById('otp-purpose').value;
+                const otpAlert = document.getElementById('otp-alert');
+                const otpSuccess = document.getElementById('otp-success');
+                
+                // Clear previous alerts
+                otpAlert.classList.add('d-none');
+                otpSuccess.classList.add('d-none');
+                
+                // Call resend OTP API
+                fetch('/api/user-auth/resend-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        purpose: purpose
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        otpSuccess.textContent = 'Verification code resent successfully.';
+                        otpSuccess.classList.remove('d-none');
+                    } else {
+                        otpAlert.textContent = data.message;
+                        otpAlert.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Resend OTP error:', error);
+                    otpAlert.textContent = 'An error occurred. Please try again.';
+                    otpAlert.classList.remove('d-none');
+                });
+            });
+
+            // Handle forgot password form submission
+            document.getElementById('forgot-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('forgot-email').value;
+                const forgotAlert = document.getElementById('forgot-alert');
+                const forgotSuccess = document.getElementById('forgot-success');
+                
+                // Clear previous alerts
+                forgotAlert.classList.add('d-none');
+                forgotSuccess.classList.add('d-none');
+                
+                // Call forgot password API
+                fetch('/api/user-auth/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        forgotSuccess.textContent = 'Reset code sent successfully. Please check your email.';
+                        forgotSuccess.classList.remove('d-none');
+                        
+                        // Show OTP verification form
+                        forgotPasswordForm.classList.add('d-none');
+                        otpVerificationForm.classList.remove('d-none');
+                        document.getElementById('verification-email').textContent = email;
+                        document.getElementById('otp-email').value = email;
+                        document.getElementById('otp-purpose').value = 'password_reset';
+                    } else {
+                        forgotAlert.textContent = data.message;
+                        forgotAlert.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Forgot password error:', error);
+                    forgotAlert.textContent = 'An error occurred. Please try again.';
+                    forgotAlert.classList.remove('d-none');
+                });
+            });
+
+            // Handle new password form submission
+            document.getElementById('new-password-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const newPassword = document.getElementById('new-password').value;
+                const confirmNewPassword = document.getElementById('confirm-new-password').value;
+                const email = document.getElementById('reset-email').value;
+                const newPasswordAlert = document.getElementById('new-password-alert');
+                const newPasswordSuccess = document.getElementById('new-password-success');
+                
+                // Clear previous alerts
+                newPasswordAlert.classList.add('d-none');
+                newPasswordSuccess.classList.add('d-none');
+                
+                // Validate passwords match
+                if (newPassword !== confirmNewPassword) {
+                    newPasswordAlert.textContent = 'Passwords do not match';
+                    newPasswordAlert.classList.remove('d-none');
+                    return;
+                }
+                
+                // Call reset password API
+                fetch('/api/user-auth/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        new_password: newPassword
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        newPasswordSuccess.textContent = 'Password reset successfully. You can now login.';
+                        newPasswordSuccess.classList.remove('d-none');
+                        
+                        // Show login form
+                        newPasswordForm.classList.add('d-none');
+                        loginForm.classList.remove('d-none');
+                    } else {
+                        newPasswordAlert.textContent = data.message;
+                        newPasswordAlert.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Reset password error:', error);
+                    newPasswordAlert.textContent = 'An error occurred. Please try again.';
+                    newPasswordAlert.classList.remove('d-none');
                 });
             });
         });

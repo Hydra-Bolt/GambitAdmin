@@ -219,6 +219,7 @@ class UserModel(db.Model, UserMixin):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
     role: Mapped[str] = mapped_column(String(20), default="user")  # user, premium
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)  # New field for OTP verification
     
     # User favorites
     favorite_sports: Mapped[List[str]] = mapped_column(ARRAY(String), nullable=True, default=[])
@@ -288,6 +289,7 @@ class UserModel(db.Model, UserMixin):
             "last_login": self.last_login.isoformat() if self.last_login else None,
             "status": self.status,
             "role": self.role,
+            "email_verified": self.email_verified,
             "favorite_sports": self.favorite_sports or [],
             "favorite_teams": self.favorite_teams or [],
             "favorite_players": self.favorite_players or [],
