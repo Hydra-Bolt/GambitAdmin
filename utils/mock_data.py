@@ -259,6 +259,12 @@ def generate_subscribers():
     """Generate mock subscriber data"""
     # Generate ~10000 subscribers
     for i in range(1, 10001):
+        # Get a random user_id from the existing users
+        user_id = random.randint(1, len(users_data))
+        
+        # Assign a random plan_id (assuming there are plan IDs 1-3)
+        plan_id = random.randint(1, 3)
+        
         subscription_type = random.choice(["monthly", "yearly"])
         status = random.choice(["active", "expired", "cancelled"])
         start_date = datetime.now() - timedelta(days=random.randint(1, 500))
@@ -275,14 +281,21 @@ def generate_subscribers():
             else:
                 end_date = start_date + timedelta(days=random.randint(1, 365))
         
+        # Random payment method
+        payment_method = random.choice(["credit_card", "paypal", "apple_pay", "google_pay", "bank_transfer"])
+        
+        # Auto renew is usually true for active subscriptions
+        auto_renew = True if status == "active" else random.choice([True, False])
+        
         subscriber = Subscriber.create_record(
             id=i,
-            email=f"subscriber{i}@example.com",
-            name=f"Subscriber {i}",
-            subscription_type=subscription_type,
+            user_id=user_id,
+            plan_id=plan_id,
             start_date=start_date,
             end_date=end_date,
-            status=status
+            status=status,
+            payment_method=payment_method,
+            auto_renew=auto_renew
         )
         subscribers_data.append(subscriber)
     

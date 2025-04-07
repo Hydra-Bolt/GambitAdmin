@@ -117,28 +117,87 @@ class RoleModel(db.Model):
         }
 
 # SQLAlchemy Models
+class PlanModel(db.Model):
+    """Subscription plan model"""
+    __tablename__ = 'plans'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(255), nullable=True)
+    price = db.Column(db.Float, nullable=False)
+    duration_days = db.Column(db.Integer, nullable=False)  # Duration in days
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationship: a plan can have many subscribers - using back_populates instead of backref
+    subscribers = db.relationship('SubscriberModel', back_populates='plan', lazy=True)
+    
+    def __repr__(self):
+        return f"<Plan {self.name} - ${self.price}>"
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'price': self.price,
+            'formatted_price': f"${self.price:.2f}",
+            'duration_days': self.duration_days,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
 class SubscriberModel(db.Model):
     __tablename__ = 'subscribers'
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
-    subscription_type: Mapped[str] = mapped_column(String(20), nullable=False)  # monthly, yearly
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
+    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey('plans.id'), nullable=False)
     start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False)  # active, expired, cancelled
+    payment_method: Mapped[str] = mapped_column(String(50), nullable=True)  # credit_card, paypal, etc.
+    payment_details: Mapped[dict] = mapped_column(JSONB, nullable=True)  # masked card info, transaction IDs
+    auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
     
+    # Relationships
+    user = relationship("UserModel", back_populates="subscriptions", foreign_keys=[user_id])
+    plan = relationship("PlanModel", back_populates="subscribers")
+    
+    def is_active(self):
+        """Check if subscription is currently active"""
+        return self.status == "active" and self.end_date > datetime.now()
+    
+    def days_remaining(self):
+        """Calculate days remaining in subscription"""
+        if self.end_date > datetime.now():
+            return (self.end_date - datetime.now()).days
+        return 0
+    
     def to_dict(self):
+        plan_data = None
+        if self.plan:
+            plan_data = {
+                "id": self.plan.id,
+                "name": self.plan.name,
+                "price": self.plan.price
+            }
+            
         return {
             "id": self.id,
-            "email": self.email,
-            "name": self.name,
-            "subscription_type": self.subscription_type,
+            "user_id": self.user_id,
+            "plan_id": self.plan_id,
+            "plan": plan_data,
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat(),
             "status": self.status,
+            "payment_method": self.payment_method,
+            "auto_renew": self.auto_renew,
+            "days_remaining": self.days_remaining(),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
@@ -166,8 +225,8 @@ class UserModel(db.Model, UserMixin):
     favorite_teams: Mapped[List[int]] = mapped_column(ARRAY(Integer), nullable=True, default=[])
     favorite_players: Mapped[List[int]] = mapped_column(ARRAY(Integer), nullable=True, default=[])
     
-    # Subscription relationship - to be implemented if needed
-    # subscription = relationship("SubscriberModel", backref="user", uselist=False)
+    # Subscription relationship
+    subscriptions = relationship("SubscriberModel", back_populates="user", foreign_keys="SubscriberModel.user_id")
     
     def set_password(self, password):
         """Hash the password for storage"""
@@ -179,9 +238,44 @@ class UserModel(db.Model, UserMixin):
         
     def is_premium(self):
         """Check if user has premium access"""
-        return self.role == "premium"
+        return self.role == "premium" or any(subscription.is_active() for subscription in self.subscriptions)
+    
+    def has_active_subscription(self):
+        """Check if user has an active subscription"""
+        return any(subscription.is_active() for subscription in self.subscriptions)
+    
+    def get_active_subscription(self):
+        """Get the active subscription or None"""
+        return next((sub for sub in self.subscriptions if sub.is_active()), None)
+    
+    def get_subscription_status(self):
+        """Get subscription status details"""
+        active_subscription = self.get_active_subscription()
+        if not active_subscription:
+            return {
+                "status": "none",
+                "plan": None,
+                "end_date": None,
+                "days_remaining": 0,
+                "auto_renew": False
+            }
+        
+        return {
+            "status": active_subscription.status,
+            "plan": {
+                "name": active_subscription.plan.name if active_subscription.plan else None,
+                "price": active_subscription.plan.price if active_subscription.plan else None,
+                "id": active_subscription.plan_id
+            },
+            "end_date": active_subscription.end_date.isoformat(),
+            "days_remaining": active_subscription.days_remaining(),
+            "auto_renew": active_subscription.auto_renew
+        }
     
     def to_dict(self):
+        subscription_status = self.get_subscription_status()
+        active_subscription = self.get_active_subscription()
+            
         return {
             "id": self.id,
             "uuid": self.uuid,
@@ -197,6 +291,8 @@ class UserModel(db.Model, UserMixin):
             "favorite_sports": self.favorite_sports or [],
             "favorite_teams": self.favorite_teams or [],
             "favorite_players": self.favorite_players or [],
+            "subscription": subscription_status,
+            "has_active_subscription": bool(active_subscription),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
@@ -431,18 +527,35 @@ class OddsModel(db.Model):
         }
 
 # Record structures
-class Subscriber:
+class Plan:
     @staticmethod
-    def create_record(id: int, email: str, name: str, subscription_type: str, 
-                      start_date: datetime, end_date: datetime, status: str) -> Dict[str, Any]:
+    def create_record(id: int, name: str, price: float, duration_days: int, description: str = "", is_active: bool = True) -> Dict[str, Any]:
         return {
             "id": id,
-            "email": email,
             "name": name,
-            "subscription_type": subscription_type,  # monthly, yearly
+            "description": description,
+            "price": price,
+            "duration_days": duration_days,
+            "is_active": is_active,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+
+class Subscriber:
+    @staticmethod
+    def create_record(id: int, user_id: int, plan_id: int, 
+                      start_date: datetime, end_date: datetime, 
+                      status: str, payment_method: str = "", 
+                      auto_renew: bool = True) -> Dict[str, Any]:
+        return {
+            "id": id,
+            "user_id": user_id,
+            "plan_id": plan_id,
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "status": status,  # active, expired, cancelled
+            "payment_method": payment_method,
+            "auto_renew": auto_renew,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }

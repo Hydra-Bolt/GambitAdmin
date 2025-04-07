@@ -3,6 +3,7 @@ Database seeding utilities for the Gambit Admin API
 """
 
 import logging
+import random
 from datetime import datetime, timedelta
 from app import db
 from models import (
@@ -10,7 +11,8 @@ from models import (
     teams_data, players_data, reels_data, user_activity_data, 
     notifications_data, faqs_data, content_pages_data,
     SubscriberModel, UserModel, LeagueModel, TeamModel, PlayerModel, 
-    ReelModel, UserActivityModel, SubscriberStatsModel, FAQModel, ContentPageModel
+    ReelModel, UserActivityModel, SubscriberStatsModel, FAQModel, ContentPageModel,
+    PlanModel
 )
 
 # Configure logger
@@ -19,6 +21,7 @@ logger = logging.getLogger(__name__)
 def seed_database():
     """Seed the database with mock data from the in-memory data structures"""
     try:
+        seed_plans()
         seed_leagues()
         seed_teams()
         seed_players()
@@ -33,6 +36,43 @@ def seed_database():
     except Exception as e:
         logger.error(f"Error seeding database: {str(e)}")
         db.session.rollback()
+
+def seed_plans():
+    """Seed subscription plans into the database"""
+    # Check if we have plans in the database already
+    if db.session.query(PlanModel).count() > 0:
+        logger.info("Plans table already has data, skipping seeding")
+        return
+    
+    logger.info("Seeding plans table...")
+    
+    # Create the two subscription plans
+    monthly_plan = PlanModel(
+        id=1,
+        name="Monthly",
+        description="Access to all premium features on a monthly billing cycle",
+        price=50.99,
+        duration_days=30,
+        is_active=True,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+    
+    yearly_plan = PlanModel(
+        id=2,
+        name="Yearly",
+        description="Access to all premium features on an annual billing cycle at a discounted rate",
+        price=150.99,
+        duration_days=365,
+        is_active=True,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+    
+    db.session.add(monthly_plan)
+    db.session.add(yearly_plan)
+    db.session.commit()
+    logger.info("Seeded 2 subscription plans")
 
 def seed_notifications():
     """Seed notification data into the database"""
@@ -239,19 +279,30 @@ def seed_users():
             registration_date = datetime.fromisoformat(user_data["registration_date"])
             last_login = datetime.fromisoformat(user_data["last_login"])
             
+            # Generate a secure password hash for the user
             user = UserModel(
                 id=user_data["id"],
                 uuid=user_data["uuid"],
                 email=user_data["email"],
                 username=user_data["username"],
                 full_name=user_data["full_name"],
+                password_hash="",  # Will be set below
                 profile_image=user_data.get("profile_image", ""),
+                bio=user_data.get("bio", ""),
                 registration_date=registration_date,
                 last_login=last_login,
                 status=user_data["status"],
+                role=user_data.get("role", "user"),
+                favorite_sports=user_data.get("favorite_sports", []),
+                favorite_teams=user_data.get("favorite_teams", []),
+                favorite_players=user_data.get("favorite_players", []),
                 created_at=created_at,
                 updated_at=updated_at
             )
+            
+            # Set a default password - in a real app this would be more secure
+            user.set_password("password123")
+            
             db.session.add(user)
         except Exception as e:
             logger.error(f"Error adding user {user_data['id']}: {str(e)}")
@@ -268,35 +319,68 @@ def seed_subscribers():
     
     logger.info("Seeding subscribers table...")
     
-    # Only seed first 100 subscribers to avoid overwhelming the database
-    subscribers_to_seed = subscribers_data[:100]
+    # Get all plans and users
+    plans = db.session.query(PlanModel).all()
+    users = db.session.query(UserModel).all()
     
-    # Convert in-memory subscribers to database models
-    for subscriber_data in subscribers_to_seed:
+    if not plans or not users:
+        logger.error("Cannot seed subscribers: plans or users not found")
+        return
+    
+    # Create a subscription for approximately 60% of users
+    users_to_subscribe = random.sample(users, k=int(len(users) * 0.6))
+    
+    for i, user in enumerate(users_to_subscribe):
         try:
-            # Parse ISO format dates
-            created_at = datetime.fromisoformat(subscriber_data["created_at"])
-            updated_at = datetime.fromisoformat(subscriber_data["updated_at"])
-            start_date = datetime.fromisoformat(subscriber_data["start_date"])
-            end_date = datetime.fromisoformat(subscriber_data["end_date"])
+            # Randomly choose a plan
+            plan = random.choice(plans)
+            
+            # Determine start date (between 1-180 days ago)
+            days_ago = random.randint(1, 180)
+            start_date = datetime.now() - timedelta(days=days_ago)
+            
+            # Set end date based on plan duration
+            end_date = start_date + timedelta(days=plan.duration_days)
+            
+            # Determine status based on end date
+            if end_date > datetime.now():
+                status = "active"
+            else:
+                status = "expired"
+            
+            # Randomly determine if auto-renew is enabled (70% chance)
+            auto_renew = random.random() < 0.7
+            
+            # Randomly pick a payment method
+            payment_methods = ["credit_card", "paypal", "apple_pay", "google_pay"]
+            payment_method = random.choice(payment_methods)
+            
+            # Create a simple payment details object
+            payment_details = {
+                "last_four": f"{random.randint(1000, 9999)}",
+                "expiry": f"{random.randint(1, 12)}/24"
+            }
             
             subscriber = SubscriberModel(
-                id=subscriber_data["id"],
-                email=subscriber_data["email"],
-                name=subscriber_data["name"],
-                subscription_type=subscriber_data["subscription_type"],
+                id=i + 1,
+                user_id=user.id,
+                plan_id=plan.id,
                 start_date=start_date,
                 end_date=end_date,
-                status=subscriber_data["status"],
-                created_at=created_at,
-                updated_at=updated_at
+                status=status,
+                payment_method=payment_method,
+                payment_details=payment_details,
+                auto_renew=auto_renew,
+                created_at=start_date,
+                updated_at=start_date
             )
             db.session.add(subscriber)
+            
         except Exception as e:
-            logger.error(f"Error adding subscriber {subscriber_data['id']}: {str(e)}")
+            logger.error(f"Error adding subscription for user {user.id}: {str(e)}")
     
     db.session.commit()
-    logger.info(f"Seeded {len(subscribers_to_seed)} subscribers")
+    logger.info(f"Seeded {len(users_to_subscribe)} subscriptions")
 
 def seed_user_activity():
     """Seed user activity data into the database"""

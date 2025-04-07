@@ -13,6 +13,10 @@ from datetime import datetime, timedelta
 from models import UserModel, db
 from utils.response_formatter import format_response, format_error
 from sqlalchemy.exc import IntegrityError
+# Randomly assign a subscription plan
+from models import PlanModel, SubscriberModel
+import random
+from datetime import datetime, timedelta
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -64,6 +68,50 @@ def signup():
         
         # Save to database
         db.session.add(new_user)
+        db.session.flush()  # Flush to get the new user's ID
+        
+       
+        
+        # Get all active plans
+        plans = PlanModel.query.filter_by(is_active=True).all()
+        
+        if plans:
+            # Randomly select a plan
+            selected_plan = random.choice(plans)
+            
+            # Set up subscription start and end dates
+            start_date = datetime.now()
+            end_date = start_date + timedelta(days=selected_plan.duration_days)
+            
+            # Create subscription with random payment method
+            payment_methods = ["credit_card", "paypal", "apple_pay", "google_pay"]
+            payment_method = random.choice(payment_methods)
+            
+            # Create a simple payment details object
+            payment_details = {
+                "last_four": f"{random.randint(1000, 9999)}",
+                "expiry": f"{random.randint(1, 12)}/24"
+            }
+            
+            # Create the subscription
+            subscription = SubscriberModel(
+                user_id=new_user.id,
+                plan_id=selected_plan.id,
+                start_date=start_date,
+                end_date=end_date,
+                status="active",
+                payment_method=payment_method,
+                payment_details=payment_details,
+                auto_renew=True,
+                created_at=start_date,
+                updated_at=start_date
+            )
+            
+            db.session.add(subscription)
+            logger.info(f"Created subscription plan '{selected_plan.name}' for user {new_user.id}")
+        else:
+            logger.warning("No active plans found. User created without subscription.")
+            
         db.session.commit()
         
         # Generate JWT tokens
@@ -244,3 +292,73 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return format_error(f"Error changing password: {str(e)}", status_code=500)
+
+@user_auth_bp.route('/subscription', methods=['GET'])
+@jwt_required()
+def get_user_subscription():
+    """Get current authenticated user's subscription details"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Convert user_id back to integer if it's a string
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        
+        user = UserModel.query.get(user_id)
+        
+        if not user:
+            return format_error("Invalid authentication credentials", status_code=401)
+        
+        from models import SubscriberModel, PlanModel
+        
+        # Get the user's subscription with plan details
+        subscription = (db.session.query(SubscriberModel, PlanModel)
+                        .join(PlanModel, SubscriberModel.plan_id == PlanModel.id)
+                        .filter(SubscriberModel.user_id == user_id)
+                        .first())
+        
+        subscription_data = None
+        
+        if subscription:
+            sub, plan = subscription
+            days_remaining = 0
+            if sub.end_date > datetime.now():
+                days_remaining = (sub.end_date - datetime.now()).days
+            
+            # Format the price with 2 decimal places
+            formatted_price = f"${plan.price:.2f}"
+                
+            subscription_data = {
+                "id": sub.id,
+                "status": sub.status,
+                "start_date": sub.start_date.isoformat(),
+                "end_date": sub.end_date.isoformat(),
+                "expiry_date": sub.end_date.strftime("%d %b, %Y"),
+                "days_remaining": days_remaining,
+                "auto_renew": sub.auto_renew,
+                "payment_method": sub.payment_method,
+                "payment_details": sub.payment_details,
+                "plan": {
+                    "id": plan.id,
+                    "name": plan.name,
+                    "description": plan.description,
+                    "price": plan.price,
+                    "formatted_price": formatted_price,
+                    "duration_days": plan.duration_days
+                }
+            }
+        
+        # Determine if user has premium access
+        is_premium = False
+        if subscription_data and subscription_data["status"] == "active":
+            is_premium = True
+        
+        return format_response({
+            "subscription": subscription_data,
+            "is_premium": is_premium
+        })
+    
+    except Exception as e:
+        logger.error(f"Error retrieving user subscription: {str(e)}")
+        logger.error(traceback.format_exc())
+        return format_error(f"Error retrieving subscription details: {str(e)}", status_code=500)

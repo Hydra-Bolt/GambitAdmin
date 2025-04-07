@@ -188,6 +188,47 @@
                             <p>This is your dashboard where you can manage your account and access Gambit features.</p>
                         </div>
                     </div>
+                    
+                    <!-- Subscription Status Card -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span>Subscription Status</span>
+                                    <span id="subscriptionBadge" class="badge bg-secondary">No Active Subscription</span>
+                                </div>
+                                <div class="card-body">
+                                    <div id="subscriptionDetails">
+                                        <div class="row">
+                                            <div class="col-md-3 mb-3">
+                                                <strong>Type:</strong>
+                                                <span id="subscriptionType">None</span>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <strong>Status:</strong>
+                                                <span id="subscriptionStatus">None</span>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <strong>Expiry Date:</strong>
+                                                <span id="subscriptionExpiry">N/A</span>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <strong>Days Remaining:</strong>
+                                                <span id="subscriptionDaysRemaining">0</span>
+                                            </div>
+                                        </div>
+                                        <div id="noSubscriptionMessage" class="d-none">
+                                            <p>You don't have an active subscription. Upgrade now to access premium features!</p>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button id="upgradeSubscriptionBtn" class="btn btn-primary">Upgrade Subscription</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-4">
                             <div class="stats-card d-flex align-items-center">
@@ -379,6 +420,7 @@
             // Get user profile
             fetchUserProfile();
             fetchDashboardStats();
+            fetchSubscriptionDetails();
 
             // Handle navigation
             const navLinks = document.querySelectorAll('.nav-link[data-section]');
@@ -413,7 +455,55 @@
                 e.preventDefault();
                 changePassword();
             });
+            
+            // Handle subscription upgrade button click
+            document.getElementById('upgradeSubscriptionBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Subscription upgrade functionality will be implemented soon!');
+            });
         });
+
+        function refreshToken() {
+            const refreshToken = localStorage.getItem('user_refresh_token');
+            if (!refreshToken) {
+                // No refresh token available, redirect to login
+                window.location.href = '/user/login';
+                return;
+            }
+            
+            fetch('/api/user-auth/refresh', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + refreshToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to refresh token');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Save the new access token
+                    localStorage.setItem('user_access_token', data.data.access_token);
+                    console.log('Token refreshed successfully');
+                    
+                    // Reload the page to retry requests
+                    window.location.reload();
+                } else {
+                    throw new Error('Failed to refresh token');
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing token:', error);
+                // Redirect to login on failure
+                localStorage.removeItem('user_access_token');
+                localStorage.removeItem('user_refresh_token');
+                window.location.href = '/user/login';
+            });
+        }
 
         function showSection(sectionId) {
             // Hide all sections
@@ -471,6 +561,11 @@
                     document.getElementById('username').value = user.username;
                     document.getElementById('bio').value = user.bio || '';
                     document.getElementById('profileImage').value = user.profile_image || '';
+                    
+                    // If subscription info is available in user data
+                    if (user.subscription) {
+                        updateSubscriptionUI(user.subscription);
+                    }
                 }
             })
             .catch(error => {
@@ -478,9 +573,82 @@
             });
         }
 
+        function fetchSubscriptionDetails() {
+            console.log('Fetching subscription details...');
+            fetch('/api/user-auth/subscription', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                }
+            })
+            .then(response => {
+                console.log('Subscription API response status:', response.status);
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        refreshToken();
+                        throw new Error('Unauthorized - refreshing token');
+                    }
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Subscription data received:', data);
+                if (data.success) {
+                    const subscription = data.data.subscription;
+                    console.log('Subscription object:', subscription);
+                    if (subscription) {
+                        updateSubscriptionUI(subscription);
+                    } else {
+                        console.log('No subscription found for user');
+                        // No subscription found
+                        document.getElementById('subscriptionBadge').textContent = 'No Active Subscription';
+                        document.getElementById('subscriptionBadge').className = 'badge bg-secondary';
+                        document.getElementById('subscriptionType').textContent = 'None';
+                        document.getElementById('subscriptionStatus').textContent = 'None';
+                        document.getElementById('subscriptionExpiry').textContent = 'N/A';
+                        document.getElementById('subscriptionDaysRemaining').textContent = '0';
+                        document.getElementById('noSubscriptionMessage').classList.remove('d-none');
+                    }
+                } else {
+                    console.error('API returned success: false', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching subscription details:', error);
+            });
+        }
+        
+        function updateSubscriptionUI(subscription) {
+            console.log('Updating subscription UI with:', subscription);
+            try {
+                // Update subscription UI elements with extra error handling
+                document.getElementById('subscriptionBadge').textContent = subscription.status || 'Unknown';
+                document.getElementById('subscriptionBadge').className = `badge bg-${subscription.status === 'active' ? 'success' : 'secondary'}`;
+                document.getElementById('subscriptionType').textContent = subscription.plan.name || 'N/A';
+                document.getElementById('subscriptionStatus').textContent = subscription.status || 'None';
+                document.getElementById('subscriptionExpiry').textContent = subscription.expiry_date || 'N/A';
+                document.getElementById('subscriptionDaysRemaining').textContent = subscription.days_remaining || '0';
+                
+                // Hide "no subscription" message and update button text
+                document.getElementById('noSubscriptionMessage').classList.add('d-none');
+                
+                // Update the button text based on subscription status
+                const upgradeBtn = document.getElementById('upgradeSubscriptionBtn');
+                if (subscription.status === 'active') {
+                    upgradeBtn.textContent = 'Manage Subscription';
+                } else {
+                    upgradeBtn.textContent = 'Reactivate Subscription';
+                }
+                console.log('Subscription UI updated successfully');
+            } catch (error) {
+                console.error('Error updating subscription UI:', error);
+            }
+        }
+
         function fetchDashboardStats() {
             // Fetch leagues count
-            fetch('/api/leagues?limit=1', {
+            fetch('/api/leagues/?limit=1', {
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
                 }
@@ -533,9 +701,9 @@
                 console.error('Error fetching reels count:', error);
             });
         }
-
+        
         function fetchFeaturedLeagues() {
-            fetch('/api/leagues?limit=5', {
+            fetch('/api/leagues/?limit=5', {
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
                 }
@@ -624,23 +792,370 @@
             });
         }
 
+        function fetchLeagues() {
+            const container = document.getElementById('leagues-content');
+            container.innerHTML = '<i class="bi bi-hourglass"></i> Loading leagues...';
+            
+            fetch('/api/leagues/?limit=10', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.leagues) {
+                    container.innerHTML = '';
+                    
+                    if (data.data.leagues.length === 0) {
+                        container.innerHTML = '<p>No leagues available.</p>';
+                        return;
+                    }
+                    
+                    // Create a filterable table
+                    const searchDiv = document.createElement('div');
+                    searchDiv.className = 'mb-3';
+                    const searchInput = document.createElement('input');
+                    searchInput.type = 'text';
+                    searchInput.className = 'form-control';
+                    searchInput.placeholder = 'Search leagues...';
+                    searchDiv.appendChild(searchInput);
+                    
+                    const table = document.createElement('table');
+                    table.className = 'table table-hover';
+                    
+                    const thead = document.createElement('thead');
+                    thead.innerHTML = `
+                        <tr>
+                            <th>Logo</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Country</th>
+                            <th>Actions</th>
+                        </tr>
+                    `;
+                    
+                    const tbody = document.createElement('tbody');
+                    
+                    data.data.leagues.forEach(league => {
+                        const tr = document.createElement('tr');
+                        
+                        const logoTd = document.createElement('td');
+                        const logoImg = document.createElement('img');
+                        logoImg.src = league.logo_url;
+                        logoImg.alt = league.name;
+                        logoImg.width = 40;
+                        logoImg.height = 40;
+                        logoImg.style.borderRadius = '50%';
+                        logoTd.appendChild(logoImg);
+                        
+                        const nameTd = document.createElement('td');
+                        nameTd.textContent = league.name;
+                        
+                        const categoryTd = document.createElement('td');
+                        const catBadge = document.createElement('span');
+                        catBadge.className = 'badge bg-primary';
+                        catBadge.textContent = league.category;
+                        categoryTd.appendChild(catBadge);
+                        
+                        const countryTd = document.createElement('td');
+                        countryTd.textContent = league.country;
+                        
+                        const actionsTd = document.createElement('td');
+                        const viewBtn = document.createElement('button');
+                        viewBtn.className = 'btn btn-sm btn-outline-primary';
+                        viewBtn.textContent = 'View Teams';
+                        viewBtn.onclick = () => {
+                            // Implement view teams functionality
+                            alert(`View teams for ${league.name} - Coming Soon`);
+                        };
+                        actionsTd.appendChild(viewBtn);
+                        
+                        tr.appendChild(logoTd);
+                        tr.appendChild(nameTd);
+                        tr.appendChild(categoryTd);
+                        tr.appendChild(countryTd);
+                        tr.appendChild(actionsTd);
+                        
+                        tbody.appendChild(tr);
+                    });
+                    
+                    table.appendChild(thead);
+                    table.appendChild(tbody);
+                    
+                    // Add search functionality
+                    searchInput.addEventListener('keyup', () => {
+                        const filter = searchInput.value.toUpperCase();
+                        const rows = tbody.getElementsByTagName('tr');
+                        
+                        for (let i = 0; i < rows.length; i++) {
+                            const nameColumn = rows[i].getElementsByTagName('td')[1];
+                            if (nameColumn) {
+                                const textValue = nameColumn.textContent || nameColumn.innerText;
+                                if (textValue.toUpperCase().indexOf(filter) > -1) {
+                                    rows[i].style.display = '';
+                                } else {
+                                    rows[i].style.display = 'none';
+                                }
+                            }
+                        }
+                    });
+                    
+                    container.appendChild(searchDiv);
+                    container.appendChild(table);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching leagues:', error);
+                container.innerHTML = '<div class="alert alert-danger">Failed to load leagues.</div>';
+            });
+        }
+        
+        function fetchTeams() {
+            const container = document.getElementById('teams-content');
+            container.innerHTML = '<i class="bi bi-hourglass"></i> Loading teams...';
+            
+            fetch('/api/teams?limit=20', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.teams) {
+                    container.innerHTML = '';
+                    
+                    if (data.data.teams.length === 0) {
+                        container.innerHTML = '<p>No teams available.</p>';
+                        return;
+                    }
+                    
+                    // Create a filterable grid of teams
+                    const searchDiv = document.createElement('div');
+                    searchDiv.className = 'mb-3';
+                    const searchInput = document.createElement('input');
+                    searchInput.type = 'text';
+                    searchInput.className = 'form-control';
+                    searchInput.placeholder = 'Search teams...';
+                    searchDiv.appendChild(searchInput);
+                    
+                    const teamsGrid = document.createElement('div');
+                    teamsGrid.className = 'row';
+                    
+                    data.data.teams.forEach(team => {
+                        const teamCard = document.createElement('div');
+                        teamCard.className = 'col-md-3 mb-4';
+                        teamCard.innerHTML = `
+                            <div class="card h-100">
+                                <div class="text-center pt-3">
+                                    <img src="${team.logo_url}" alt="${team.name}" style="width: 80px; height: 80px; border-radius: 50%;">
+                                </div>
+                                <div class="card-body text-center">
+                                    <h5 class="card-title team-name">${team.name}</h5>
+                                    <button class="btn btn-sm btn-outline-primary view-team-btn">View Details</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        const viewBtn = teamCard.querySelector('.view-team-btn');
+                        viewBtn.addEventListener('click', () => {
+                            // Implement team details view
+                            alert(`Team details for ${team.name} - Coming Soon`);
+                        });
+                        
+                        teamsGrid.appendChild(teamCard);
+                    });
+                    
+                    // Add search functionality
+                    searchInput.addEventListener('keyup', () => {
+                        const filter = searchInput.value.toUpperCase();
+                        const teamCards = teamsGrid.querySelectorAll('.col-md-3');
+                        
+                        teamCards.forEach(card => {
+                            const teamName = card.querySelector('.team-name').textContent;
+                            if (teamName.toUpperCase().indexOf(filter) > -1) {
+                                card.style.display = '';
+                            } else {
+                                card.style.display = 'none';
+                            }
+                        });
+                    });
+                    
+                    container.appendChild(searchDiv);
+                    container.appendChild(teamsGrid);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching teams:', error);
+                container.innerHTML = '<div class="alert alert-danger">Failed to load teams.</div>';
+            });
+        }
+        
+        function fetchPlayers() {
+            const container = document.getElementById('players-content');
+            container.innerHTML = '<i class="bi bi-hourglass"></i> Loading players...';
+            
+            fetch('/api/players?limit=20', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.players) {
+                    container.innerHTML = '';
+                    
+                    if (data.data.players.length === 0) {
+                        container.innerHTML = '<p>No players available.</p>';
+                        return;
+                    }
+                    
+                    // Create a filterable list of players
+                    const searchDiv = document.createElement('div');
+                    searchDiv.className = 'mb-3';
+                    const searchInput = document.createElement('input');
+                    searchInput.type = 'text';
+                    searchInput.className = 'form-control';
+                    searchInput.placeholder = 'Search players...';
+                    searchDiv.appendChild(searchInput);
+                    
+                    const playersGrid = document.createElement('div');
+                    playersGrid.className = 'row';
+                    
+                    data.data.players.forEach(player => {
+                        const playerCard = document.createElement('div');
+                        playerCard.className = 'col-md-3 mb-4';
+                        playerCard.innerHTML = `
+                            <div class="card h-100">
+                                <div class="text-center pt-3">
+                                    <img src="${player.profile_image}" alt="${player.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                                </div>
+                                <div class="card-body text-center">
+                                    <h5 class="card-title player-name">${player.name}</h5>
+                                    <p class="card-text">${player.position} | #${player.jersey_number}</p>
+                                    <button class="btn btn-sm btn-outline-primary view-player-btn">View Profile</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        const viewBtn = playerCard.querySelector('.view-player-btn');
+                        viewBtn.addEventListener('click', () => {
+                            // Implement player profile view
+                            alert(`Player profile for ${player.name} - Coming Soon`);
+                        });
+                        
+                        playersGrid.appendChild(playerCard);
+                    });
+                    
+                    // Add search functionality
+                    searchInput.addEventListener('keyup', () => {
+                        const filter = searchInput.value.toUpperCase();
+                        const playerCards = playersGrid.querySelectorAll('.col-md-3');
+                        
+                        playerCards.forEach(card => {
+                            const playerName = card.querySelector('.player-name').textContent;
+                            if (playerName.toUpperCase().indexOf(filter) > -1) {
+                                card.style.display = '';
+                            } else {
+                                card.style.display = 'none';
+                            }
+                        });
+                    });
+                    
+                    container.appendChild(searchDiv);
+                    container.appendChild(playersGrid);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching players:', error);
+                container.innerHTML = '<div class="alert alert-danger">Failed to load players.</div>';
+            });
+        }
+        
+        function fetchReels() {
+            const container = document.getElementById('reels-content');
+            container.innerHTML = '<i class="bi bi-hourglass"></i> Loading reels...';
+            
+            fetch('/api/reels?limit=20', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.reels) {
+                    container.innerHTML = '';
+                    
+                    if (data.data.reels.length === 0) {
+                        container.innerHTML = '<p>No reels available.</p>';
+                        return;
+                    }
+                    
+                    // Create a grid of reels
+                    const reelsGrid = document.createElement('div');
+                    reelsGrid.className = 'row';
+                    
+                    data.data.reels.forEach(reel => {
+                        const reelCard = document.createElement('div');
+                        reelCard.className = 'col-md-4 mb-4';
+                        reelCard.innerHTML = `
+                            <div class="card h-100">
+                                <div class="position-relative">
+                                    <img src="${reel.thumbnail_url}" class="card-img-top" alt="${reel.title}" style="height: 160px; object-fit: cover;">
+                                    <div class="position-absolute bottom-0 end-0 bg-dark text-white p-1 m-2 rounded">
+                                        ${Math.floor(reel.duration / 60)}:${String(Math.floor(reel.duration % 60)).padStart(2, '0')}
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">${reel.title}</h5>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="bi bi-eye"></i> ${reel.view_count} views
+                                        </small>
+                                    </p>
+                                    <button class="btn btn-primary watch-reel-btn">Watch Reel</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        const watchBtn = reelCard.querySelector('.watch-reel-btn');
+                        watchBtn.addEventListener('click', () => {
+                            // Implement reel viewing
+                            window.open(reel.video_url, '_blank');
+                        });
+                        
+                        reelsGrid.appendChild(reelCard);
+                    });
+                    
+                    container.appendChild(reelsGrid);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching reels:', error);
+                container.innerHTML = '<div class="alert alert-danger">Failed to load reels.</div>';
+            });
+        }
+
         function updateProfile() {
-            const profileSuccess = document.getElementById('profile-success');
-            const profileError = document.getElementById('profile-error');
-            
-            // Hide any previous messages
-            profileSuccess.classList.add('d-none');
-            profileError.classList.add('d-none');
-            
             const fullName = document.getElementById('fullName').value;
             const bio = document.getElementById('bio').value;
             const profileImage = document.getElementById('profileImage').value;
             
+            // Show loading state
+            const submitBtn = document.querySelector('#profile-form button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.textContent = 'Saving...';
+            submitBtn.disabled = true;
+            
+            // Reset alert messages
+            document.getElementById('profile-success').classList.add('d-none');
+            document.getElementById('profile-error').classList.add('d-none');
+            
+            // Make API request to update profile
             fetch('/api/user-auth/me', {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token'),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     full_name: fullName,
@@ -648,107 +1163,133 @@
                     profile_image: profileImage
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        refreshToken();
+                        throw new Error('Unauthorized - refreshing token');
+                    }
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
+                // Reset button state
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+                
                 if (data.success) {
-                    profileSuccess.classList.remove('d-none');
+                    // Show success message
+                    const successAlert = document.getElementById('profile-success');
+                    successAlert.classList.remove('d-none');
                     
-                    // Update the displayed name and image
+                    // Update user profile display
                     document.getElementById('userFullName').textContent = fullName;
                     document.getElementById('welcomeUserName').textContent = fullName.split(' ')[0];
                     
                     if (profileImage) {
                         document.getElementById('userProfileImage').src = profileImage;
                     }
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successAlert.classList.add('d-none');
+                    }, 3000);
                 } else {
-                    profileError.textContent = data.message;
-                    profileError.classList.remove('d-none');
+                    throw new Error(data.message || 'Unknown error occurred');
                 }
             })
             .catch(error => {
-                profileError.textContent = 'An error occurred while updating your profile.';
-                profileError.classList.remove('d-none');
-                console.error('Error updating profile:', error);
+                // Reset button state
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+                
+                // Show error message
+                const errorAlert = document.getElementById('profile-error');
+                errorAlert.textContent = error.message || 'Failed to update profile';
+                errorAlert.classList.remove('d-none');
             });
         }
-
+        
         function changePassword() {
-            const passwordSuccess = document.getElementById('password-success');
-            const passwordError = document.getElementById('password-error');
-            
-            // Hide any previous messages
-            passwordSuccess.classList.add('d-none');
-            passwordError.classList.add('d-none');
-            
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
+            // Reset alert messages
+            document.getElementById('password-success').classList.add('d-none');
+            document.getElementById('password-error').classList.add('d-none');
+            
             // Validate passwords match
             if (newPassword !== confirmPassword) {
-                passwordError.textContent = 'New passwords do not match';
-                passwordError.classList.remove('d-none');
+                const errorAlert = document.getElementById('password-error');
+                errorAlert.textContent = 'New passwords do not match';
+                errorAlert.classList.remove('d-none');
                 return;
             }
             
+            // Show loading state
+            const submitBtn = document.querySelector('#password-form button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.textContent = 'Changing...';
+            submitBtn.disabled = true;
+            
+            // Make API request to change password
             fetch('/api/user-auth/change-password', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token')
+                    'Authorization': 'Bearer ' + localStorage.getItem('user_access_token'),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     current_password: currentPassword,
                     new_password: newPassword
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        refreshToken();
+                        throw new Error('Unauthorized - refreshing token');
+                    }
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Failed to change password');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
+                // Reset button state
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+                
                 if (data.success) {
-                    passwordSuccess.classList.remove('d-none');
+                    // Show success message
+                    const successAlert = document.getElementById('password-success');
+                    successAlert.classList.remove('d-none');
+                    
+                    // Clear password fields
                     document.getElementById('currentPassword').value = '';
                     document.getElementById('newPassword').value = '';
                     document.getElementById('confirmPassword').value = '';
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successAlert.classList.add('d-none');
+                    }, 3000);
                 } else {
-                    passwordError.textContent = data.message;
-                    passwordError.classList.remove('d-none');
+                    throw new Error(data.message || 'Unknown error occurred');
                 }
             })
             .catch(error => {
-                passwordError.textContent = 'An error occurred while changing your password.';
-                passwordError.classList.remove('d-none');
-                console.error('Error changing password:', error);
-            });
-        }
-
-        function refreshToken() {
-            const refreshToken = localStorage.getItem('user_refresh_token');
-            if (!refreshToken) {
-                // No refresh token, redirect to login
-                window.location.href = '/user/login';
-                return;
-            }
-            
-            fetch('/api/user-auth/refresh', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + refreshToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    localStorage.setItem('user_access_token', data.data.access_token);
-                    // Retry the original request that failed (could implement more sophisticated retry logic)
-                    fetchUserProfile();
-                } else {
-                    // Refresh token invalid, redirect to login
-                    window.location.href = '/user/login';
-                }
-            })
-            .catch(error => {
-                console.error('Error refreshing token:', error);
-                window.location.href = '/user/login';
+                // Reset button state
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+                
+                // Show error message
+                const errorAlert = document.getElementById('password-error');
+                errorAlert.textContent = error.message;
+                errorAlert.classList.remove('d-none');
             });
         }
     </script>
