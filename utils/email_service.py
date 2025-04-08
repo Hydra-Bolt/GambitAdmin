@@ -11,13 +11,19 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
+from dotenv import load_dotenv
+
+
+load_dotenv()  # Load environment variables from .env file
+
+
 logger = logging.getLogger(__name__)
 
-# Email configuration - Read from environment variables if available
+# Email configuration - Read from environment variables
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USERNAME = os.environ.get("EMAIL_USERNAME", "ahmed4507537@gmail.com")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "knab envl wghr phdg")  # App password for Gmail
+EMAIL_USERNAME = os.environ.get("EMAIL_USERNAME", "")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")  # App password for Gmail
 
 # For development only - enable this flag to skip actual email sending
 # In development, OTPs will be logged to console instead of sent via email
