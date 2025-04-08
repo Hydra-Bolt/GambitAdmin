@@ -7,6 +7,8 @@ import logging
 import random
 import string
 import os
+import hashlib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -32,10 +34,20 @@ DEV_MODE = os.environ.get("DEV_MODE", "false").lower() == "true"
 # OTP configuration
 OTP_EXPIRY_MINUTES = 10
 OTP_LENGTH = 6
+MAX_OTP_ATTEMPTS = 5  # Maximum number of verification attempts
+RATE_LIMIT_SECONDS = 60  # Time between OTP requests for the same email
 
-# In-memory storage for OTPs
-# In production, this should be moved to a database
-# Format: {"email": {"otp": "123456", "expiry": datetime_object, "verified": False, "purpose": "signup/reset"}}
+# Secure OTP storage with the following structure:
+# {
+#   "email": {
+#     "otp_hash": "hashed_otp_value", 
+#     "expiry": datetime_object, 
+#     "verified": False, 
+#     "purpose": "signup/reset",
+#     "attempts": 0,
+#     "last_request": timestamp
+#   }
+# }
 otp_store = {}
 
 
@@ -44,35 +56,72 @@ def generate_otp(length=OTP_LENGTH):
     return ''.join(random.choices(string.digits, k=length))
 
 
+def hash_otp(otp, email):
+    """Create a secure hash of the OTP with email as salt"""
+    # Use email as a salt to make the hash unique even for same OTPs
+    salted = f"{otp}:{email}"
+    return hashlib.sha256(salted.encode()).hexdigest()
+
+
 def store_otp(email, otp, purpose="signup"):
-    """Store OTP with expiry time"""
+    """Store OTP with expiry time using a secure hash"""
+    current_time = time.time()
+    
+    # Apply rate limiting
+    if email in otp_store and current_time - otp_store[email].get("last_request", 0) < RATE_LIMIT_SECONDS:
+        logger.warning(f"Rate limit exceeded for {email}. Please wait before requesting another OTP.")
+        return False
+    
+    # Store hashed version of OTP, not plain text
+    otp_hash = hash_otp(otp, email)
+    
     otp_store[email] = {
-        "otp": otp,
+        "otp_hash": otp_hash,
         "expiry": datetime.now() + timedelta(minutes=OTP_EXPIRY_MINUTES),
         "verified": False,
-        "purpose": purpose
+        "purpose": purpose,
+        "attempts": 0,
+        "last_request": current_time
     }
     
     # In development mode, log the OTP for easy testing
     if DEV_MODE:
         logger.info(f"DEV MODE - OTP for {email}: {otp} (purpose: {purpose})")
+    
+    return True
 
 
 def verify_otp(email, otp):
     """Verify if the provided OTP is valid and not expired"""
     if email not in otp_store:
+        logger.warning(f"No OTP found for {email}")
         return False
     
     otp_data = otp_store[email]
     
-    if otp_data["otp"] != otp:
-        return False
-    
+    # Check if OTP has expired
     if otp_data["expiry"] < datetime.now():
-        # OTP has expired
+        # OTP has expired, clean it up
+        clear_otp(email)
+        logger.warning(f"OTP expired for {email}")
         return False
     
-    # Mark as verified
+    # Check if too many attempts
+    if otp_data["attempts"] >= MAX_OTP_ATTEMPTS:
+        logger.warning(f"Too many failed attempts for {email}")
+        clear_otp(email)
+        return False
+    
+    # Increment attempt counter
+    otp_data["attempts"] += 1
+    
+    # Compare hashed versions
+    provided_hash = hash_otp(otp, email)
+    if otp_data["otp_hash"] != provided_hash:
+        logger.warning(f"Invalid OTP for {email}, attempt {otp_data['attempts']}")
+        return False
+    
+    # Mark as verified and clean up
     otp_data["verified"] = True
     return True
 
@@ -83,6 +132,11 @@ def is_otp_verified(email, purpose=None):
         return False
     
     otp_data = otp_store[email]
+    
+    # Check if OTP has expired
+    if otp_data["expiry"] < datetime.now():
+        clear_otp(email)
+        return False
     
     # If purpose is specified, check if it matches
     if purpose and otp_data["purpose"] != purpose:
@@ -99,6 +153,10 @@ def clear_otp(email):
 
 def send_otp_email(recipient_email, otp, purpose="signup"):
     """Send OTP via email"""
+    # Generate and store OTP first
+    if not store_otp(recipient_email, otp, purpose):
+        return False
+        
     subject = "Your Gambit OTP Code"
     
     if purpose == "signup":
