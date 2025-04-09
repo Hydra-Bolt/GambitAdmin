@@ -5,7 +5,7 @@ Handles login, logout, and password management.
 
 import logging
 import traceback
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from datetime import datetime
 from models import AdminModel, db

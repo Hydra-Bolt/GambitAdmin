@@ -1,7 +1,11 @@
 from flask import Blueprint, jsonify
 import logging
-from models import subscribers_data, users_data, leagues_data, teams_data, user_activity_data
+from models import SubscriberModel, UserModel, LeagueModel, TeamModel, UserActivityModel
 from utils.response_formatter import format_response, format_error
+from flask_jwt_extended import jwt_required
+from utils.auth import require_permission
+from models import PermissionType
+from datetime import datetime, timedelta
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -13,54 +17,56 @@ dashboard_bp = Blueprint('dashboard', __name__)
 def get_dashboard_data():
     """Get all dashboard data in a single request"""
     try:
-        # Get subscriber counts
-        total_subscribers = len(subscribers_data)
-        monthly_subscribers = len([s for s in subscribers_data if s['subscription_type'] == 'monthly' and s['status'] == 'active'])
-        yearly_subscribers = len([s for s in subscribers_data if s['subscription_type'] == 'yearly' and s['status'] == 'active'])
+        # Get subscriber counts from database
+        total_subscribers = SubscriberModel.query.count()
+        monthly_subscribers = SubscriberModel.query.filter_by(subscription_type='monthly', status='active').count()
+        yearly_subscribers = SubscriberModel.query.filter_by(subscription_type='yearly', status='active').count()
         
         # Get most popular league
-        most_viewed_league = max(leagues_data, key=lambda x: x['popularity']) if leagues_data else None
+        most_viewed_league = LeagueModel.query.order_by(LeagueModel.popularity.desc()).first()
         
         # Get most popular team
-        most_viewed_team = max(teams_data, key=lambda x: x['popularity']) if teams_data else None
+        most_viewed_team = TeamModel.query.order_by(TeamModel.popularity.desc()).first()
+        
+        # Get user activity for the last 30 days
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        user_activity = UserActivityModel.query\
+            .filter(UserActivityModel.date >= thirty_days_ago)\
+            .order_by(UserActivityModel.date.asc())\
+            .all()
         
         # Compile dashboard data
         dashboard_data = {
             "subscribers": {
                 "total": total_subscribers,
                 "monthly": monthly_subscribers,
-                "yearly": yearly_subscribers,
-                "growth_rate": 0.8  # This would be calculated from historical data
+                "yearly": yearly_subscribers
             },
             "popular_content": {
-                "most_viewed_league": most_viewed_league,
-                "most_viewed_team": most_viewed_team
+                "most_viewed_league": most_viewed_league.to_dict() if most_viewed_league else {"name": "No leagues found"},
+                "most_viewed_team": most_viewed_team.to_dict() if most_viewed_team else {"name": "No teams found"}
             },
-            "user_activity": user_activity_data
+            "user_activity": [activity.to_dict() for activity in user_activity]
         }
         
         return format_response(dashboard_data)
     except Exception as e:
         logger.error(f"Error getting dashboard data: {str(e)}")
-        return format_error(str(e)), 500
+        return format_error(str(e), status_code=500)
 
 @dashboard_bp.route('/subscribers', methods=['GET'])
 def get_subscriber_overview():
     """Get subscriber overview data"""
     try:
         # Get subscriber counts
-        total_subscribers = len(subscribers_data)
-        monthly_subscribers = len([s for s in subscribers_data if s['subscription_type'] == 'monthly' and s['status'] == 'active'])
-        yearly_subscribers = len([s for s in subscribers_data if s['subscription_type'] == 'yearly' and s['status'] == 'active'])
-        
-        # Get subscription growth rate
-        growth_rate = 0.8  # This would be calculated from historical data
+        total_subscribers = SubscriberModel.query.count()
+        monthly_subscribers = SubscriberModel.query.filter_by(subscription_type='monthly', status='active').count()
+        yearly_subscribers = SubscriberModel.query.filter_by(subscription_type='yearly', status='active').count()
         
         subscriber_overview = {
             "total": total_subscribers,
             "monthly": monthly_subscribers,
-            "yearly": yearly_subscribers,
-            "growth_rate": growth_rate
+            "yearly": yearly_subscribers
         }
         
         return format_response(subscriber_overview)
@@ -73,15 +79,14 @@ def get_user_overview():
     """Get user statistics overview"""
     try:
         # Get active users count
-        active_users = len([u for u in users_data if u['status'] == 'active'])
+        active_users = UserModel.query.filter_by(status='active').count()
         
         # Get new users count (registered in the last 30 days)
-        from datetime import datetime, timedelta
-        thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
-        new_users = len([u for u in users_data if u['registration_date'] > thirty_days_ago])
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        new_users = UserModel.query.filter(UserModel.registration_date > thirty_days_ago).count()
         
         user_overview = {
-            "total_users": len(users_data),
+            "total_users": UserModel.query.count(),
             "active_users": active_users,
             "new_users": new_users
         }
@@ -96,16 +101,14 @@ def get_popular_content():
     """Get most popular content"""
     try:
         # Get most popular leagues
-        sorted_leagues = sorted(leagues_data, key=lambda x: x['popularity'], reverse=True)
-        top_leagues = sorted_leagues[:5] if sorted_leagues else []
+        top_leagues = LeagueModel.query.order_by(LeagueModel.popularity.desc()).limit(5).all()
         
         # Get most popular teams
-        sorted_teams = sorted(teams_data, key=lambda x: x['popularity'], reverse=True)
-        top_teams = sorted_teams[:5] if sorted_teams else []
+        top_teams = TeamModel.query.order_by(TeamModel.popularity.desc()).limit(5).all()
         
         popular_content = {
-            "top_leagues": top_leagues,
-            "top_teams": top_teams
+            "top_leagues": [league.to_dict() for league in top_leagues],
+            "top_teams": [team.to_dict() for team in top_teams]
         }
         
         return format_response(popular_content)

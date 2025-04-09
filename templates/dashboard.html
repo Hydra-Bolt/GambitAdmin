@@ -50,6 +50,13 @@
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 20px;
+            width: 100%;
+            height: 300px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
         }
     </style>
 </head>
@@ -918,16 +925,553 @@
                 fetchAndDisplaySubscriptions();
             }
             
-            setupFilterForm();
-            setupCreateLeagueButton();
-            setupCreateLeagueForm();
-            setupEditLeagueForm();
-            setupModalCloseButtons();
-            
-            setupUserFilterForm();
-            setupUserDetailModal();
-            
-            setupSubscriptionFilterForm();
+            // League management functions
+            function setupFilterForm() {
+                const applyFiltersBtn = document.getElementById('applyFilters');
+                if (applyFiltersBtn) {
+                    applyFiltersBtn.addEventListener('click', function() {
+                        const categoryFilter = document.getElementById('categoryFilter').value;
+                        const countryFilter = document.getElementById('countryFilter').value;
+                        const enabledFilter = document.getElementById('enabledFilter').checked;
+                        
+                        fetchAndDisplayLeagues({
+                            category: categoryFilter,
+                            country: countryFilter,
+                            enabled: enabledFilter
+                        });
+                    });
+                }
+            }
+
+            function setupCreateLeagueButton() {
+                const createLeagueBtn = document.getElementById('createLeagueBtn');
+                if (createLeagueBtn) {
+                    createLeagueBtn.addEventListener('click', function() {
+                        document.getElementById('createLeagueModal').classList.remove('hidden');
+                    });
+                }
+            }
+
+            function setupCreateLeagueForm() {
+                const createLeagueForm = document.getElementById('createLeagueForm');
+                if (createLeagueForm) {
+                    createLeagueForm.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        
+                        const leagueData = {
+                            name: document.getElementById('newLeagueName').value,
+                            category: document.getElementById('newLeagueCategory').value,
+                            country: document.getElementById('newLeagueCountry').value,
+                            logo_url: document.getElementById('newLeagueLogoUrl').value,
+                            popularity: parseInt(document.getElementById('newLeaguePopularity').value) || 0,
+                            enabled: document.getElementById('newLeagueEnabled').checked
+                        };
+                        
+                        try {
+                            const token = getAuthToken();
+                            const response = await fetch('/api/leagues/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify(leagueData)
+                            });
+                            
+                            if (response.ok) {
+                                document.getElementById('createLeagueModal').classList.add('hidden');
+                                createLeagueForm.reset();
+                                fetchAndDisplayLeagues();
+                                alert('League created successfully');
+                            } else {
+                                const error = await response.json();
+                                alert(`Error creating league: ${error.message || 'Unknown error'}`);
+                            }
+                        } catch (error) {
+                            console.error('Error creating league:', error);
+                            alert(`Error creating league: ${error.message}`);
+                        }
+                    });
+                }
+            }
+
+            function setupEditLeagueForm() {
+                const editLeagueForm = document.getElementById('editLeagueForm');
+                if (editLeagueForm) {
+                    editLeagueForm.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        
+                        const leagueId = document.getElementById('editLeagueId').value;
+                        const leagueData = {
+                            name: document.getElementById('editLeagueName').value,
+                            category: document.getElementById('editLeagueCategory').value,
+                            country: document.getElementById('editLeagueCountry').value,
+                            logo_url: document.getElementById('editLeagueLogoUrl').value,
+                            popularity: parseInt(document.getElementById('editLeaguePopularity').value) || 0,
+                            enabled: document.getElementById('editLeagueEnabled').checked
+                        };
+                        
+                        try {
+                            const token = getAuthToken();
+                            const response = await fetch(`/api/leagues/${leagueId}/`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify(leagueData)
+                            });
+                            
+                            if (response.ok) {
+                                document.getElementById('editLeagueModal').classList.add('hidden');
+                                fetchAndDisplayLeagues();
+                                alert('League updated successfully');
+                            } else {
+                                const error = await response.json();
+                                alert(`Error updating league: ${error.message || 'Unknown error'}`);
+                            }
+                        } catch (error) {
+                            console.error('Error updating league:', error);
+                            alert(`Error updating league: ${error.message}`);
+                        }
+                    });
+                }
+            }
+
+            function setupModalCloseButtons() {
+                const closeButtons = document.querySelectorAll('.close-modal');
+                closeButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const modalId = this.getAttribute('data-modal');
+                        document.getElementById(modalId).classList.add('hidden');
+                    });
+                });
+            }
+
+            // User management functions
+            function setupUserFilterForm() {
+                const applyUserFiltersBtn = document.getElementById('applyUserFilters');
+                if (applyUserFiltersBtn) {
+                    applyUserFiltersBtn.addEventListener('click', function() {
+                        const statusFilter = document.getElementById('statusFilter').value;
+                        const subscriptionFilter = document.getElementById('subscriptionFilter').value;
+                        
+                        fetchAndDisplayUsers({
+                            status: statusFilter,
+                            subscription: subscriptionFilter
+                        });
+                    });
+                }
+            }
+
+            function setupUserDetailModal() {
+                // Close user detail modal
+                const closeUserDetailModalBtn = document.getElementById('closeUserDetailModal');
+                if (closeUserDetailModalBtn) {
+                    closeUserDetailModalBtn.addEventListener('click', function() {
+                        document.getElementById('userDetailModal').classList.add('hidden');
+                    });
+                }
+
+                // Setup restrict user button
+                const restrictUserBtn = document.getElementById('restrictUserBtn');
+                if (restrictUserBtn) {
+                    restrictUserBtn.addEventListener('click', async function() {
+                        const userId = this.getAttribute('data-user-id');
+                        if (!userId) return;
+
+                        if (confirm('Are you sure you want to restrict this user?')) {
+                            try {
+                                const token = getAuthToken();
+                                const response = await fetch(`/api/users/${userId}/restrict/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                                
+                                if (response.ok) {
+                                    document.getElementById('userDetailModal').classList.add('hidden');
+                                    fetchAndDisplayUsers();
+                                    alert('User restricted successfully');
+                                } else {
+                                    const error = await response.json();
+                                    alert(`Error restricting user: ${error.message || 'Unknown error'}`);
+                                }
+                            } catch (error) {
+                                console.error('Error restricting user:', error);
+                                alert(`Error restricting user: ${error.message}`);
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Subscriber management functions
+            function setupSubscriptionFilterForm() {
+                const applyFiltersBtn = document.getElementById('applySubscriptionFilters');
+                
+                if (applyFiltersBtn) {
+                    applyFiltersBtn.addEventListener('click', function() {
+                        const typeFilter = document.getElementById('subscriptionTypeFilter').value;
+                        const statusFilter = document.getElementById('subscriptionStatusFilter').value;
+                        
+                        loadSubscriptionsPage(1, {
+                            type: typeFilter,
+                            status: statusFilter
+                        });
+                    });
+                }
+            }
+
+            // Helper functions for league management
+            async function fetchAndDisplayLeagues(filters = {}) {
+                try {
+                    let url = '/api/leagues/';
+                    const queryParams = [];
+                    
+                    if (filters.category) queryParams.push(`category=${encodeURIComponent(filters.category)}`);
+                    if (filters.country) queryParams.push(`country=${encodeURIComponent(filters.country)}`);
+                    if (filters.enabled) queryParams.push('enabled=true');
+                    
+                    if (queryParams.length > 0) {
+                        url += '?' + queryParams.join('&');
+                    }
+                    
+                    const token = getAuthToken();
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch leagues: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    displayLeagues(result.data);
+                } catch (error) {
+                    console.error('Error fetching leagues:', error);
+                    alert(`Error fetching leagues: ${error.message}`);
+                }
+            }
+
+            function displayLeagues(leagues) {
+                const tableBody = document.getElementById('leaguesTableBody');
+                tableBody.innerHTML = '';
+                
+                if (!leagues || leagues.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="p-4 text-center">No leagues found</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                leagues.forEach(league => {
+                    const row = document.createElement('tr');
+                    row.classList.add('border-b', 'border-[#2D2D2D]', 'hover:bg-[#1E1436]');
+                    
+                    const statusBadge = league.enabled 
+                        ? `<span class="bg-green-900 text-green-300 py-1 px-2 rounded-full text-xs">Enabled</span>`
+                        : `<span class="bg-red-900 text-red-300 py-1 px-2 rounded-full text-xs">Disabled</span>`;
+                    
+                    row.innerHTML = `
+                        <td class="p-2">${league.id}</td>
+                        <td class="p-2"><img src="${league.logo_url}" alt="${league.name}" class="w-8 h-8 object-contain"></td>
+                        <td class="p-2">${league.name}</td>
+                        <td class="p-2">${league.category}</td>
+                        <td class="p-2">${league.country}</td>
+                        <td class="p-2">${league.popularity || 0}</td>
+                        <td class="p-2">${statusBadge}</td>
+                        <td class="p-2">
+                            <button class="edit-league-btn bg-blue-600 text-white py-1 px-2 rounded text-xs mr-1" 
+                                data-league-id="${league.id}">Edit</button>
+                            <button class="delete-league-btn bg-red-600 text-white py-1 px-2 rounded text-xs" 
+                                data-league-id="${league.id}">Delete</button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Setup edit buttons
+                const editButtons = document.querySelectorAll('.edit-league-btn');
+                editButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const leagueId = this.getAttribute('data-league-id');
+                        openEditLeagueModal(leagueId, leagues);
+                    });
+                });
+                
+                // Setup delete buttons
+                const deleteButtons = document.querySelectorAll('.delete-league-btn');
+                deleteButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const leagueId = this.getAttribute('data-league-id');
+                        if (confirm('Are you sure you want to delete this league?')) {
+                            deleteLeague(leagueId);
+                        }
+                    });
+                });
+            }
+
+            function openEditLeagueModal(leagueId, leagues) {
+                const league = leagues.find(l => l.id.toString() === leagueId.toString());
+                if (!league) return;
+                
+                document.getElementById('editLeagueId').value = league.id;
+                document.getElementById('editLeagueName').value = league.name;
+                document.getElementById('editLeagueCategory').value = league.category;
+                document.getElementById('editLeagueCountry').value = league.country;
+                document.getElementById('editLeagueLogoUrl').value = league.logo_url;
+                document.getElementById('editLeaguePopularity').value = league.popularity || 0;
+                document.getElementById('editLeagueEnabled').checked = league.enabled;
+                
+                document.getElementById('editLeagueModal').classList.remove('hidden');
+            }
+
+            async function deleteLeague(leagueId) {
+                try {
+                    const token = getAuthToken();
+                    const response = await fetch(`/api/leagues/${leagueId}/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        fetchAndDisplayLeagues();
+                        alert('League deleted successfully');
+                    } else {
+                        const error = await response.json();
+                        alert(`Error deleting league: ${error.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error deleting league:', error);
+                    alert(`Error deleting league: ${error.message}`);
+                }
+            }
+
+            // Helper functions for user management
+            async function fetchAndDisplayUsers(filters = {}) {
+                try {
+                    let url = '/api/users/';
+                    const queryParams = [];
+                    
+                    if (filters.status) queryParams.push(`status=${encodeURIComponent(filters.status)}`);
+                    if (filters.subscription) queryParams.push(`subscription=${encodeURIComponent(filters.subscription)}`);
+                    
+                    if (queryParams.length > 0) {
+                        url += '?' + queryParams.join('&');
+                    }
+                    
+                    const token = getAuthToken();
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch users: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    displayUsers(result.data);
+                } catch (error) {
+                    console.error('Error fetching users:', error);
+                    alert(`Error fetching users: ${error.message}`);
+                }
+            }
+
+            function displayUsers(users) {
+                const tableBody = document.getElementById('usersTableBody');
+                tableBody.innerHTML = '';
+                
+                if (!users || users.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="p-4 text-center">No users found</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.classList.add('border-b', 'border-[#2D2D2D]', 'hover:bg-[#1E1436]');
+                    
+                    let statusBadge;
+                    switch (user.status) {
+                        case 'active':
+                            statusBadge = `<span class="bg-green-900 text-green-300 py-1 px-2 rounded-full text-xs">Active</span>`;
+                            break;
+                        case 'inactive':
+                            statusBadge = `<span class="bg-yellow-900 text-yellow-300 py-1 px-2 rounded-full text-xs">Inactive</span>`;
+                            break;
+                        case 'suspended':
+                            statusBadge = `<span class="bg-red-900 text-red-300 py-1 px-2 rounded-full text-xs">Suspended</span>`;
+                            break;
+                        default:
+                            statusBadge = `<span class="bg-gray-900 text-gray-300 py-1 px-2 rounded-full text-xs">${user.status}</span>`;
+                    }
+                    
+                    row.innerHTML = `
+                        <td class="p-2">${user.id}</td>
+                        <td class="p-2"><img src="${user.profile_image || '/path/to/default-avatar.jpg'}" alt="${user.name}" class="w-8 h-8 rounded-full object-cover"></td>
+                        <td class="p-2">${user.name}</td>
+                        <td class="p-2">${user.email}</td>
+                        <td class="p-2">${statusBadge}</td>
+                        <td class="p-2">${user.subscription_type || 'None'}</td>
+                        <td class="p-2">$${user.amount_spent || '0.00'}</td>
+                        <td class="p-2">
+                            <button class="view-user-btn bg-blue-600 text-white py-1 px-2 rounded text-xs" 
+                                data-user-id="${user.id}">View Details</button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Setup view details buttons
+                const viewButtons = document.querySelectorAll('.view-user-btn');
+                viewButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-user-id');
+                        openUserDetailModal(userId);
+                    });
+                });
+            }
+
+            async function openUserDetailModal(userId) {
+                try {
+                    const token = getAuthToken();
+                    const response = await fetch(`/api/users/${userId}/`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch user details: ${response.statusText}`);
+                    }
+                    
+                    const userData = await response.json();
+                    const user = userData.data;
+                    
+                    // Populate user details in modal
+                    document.getElementById('modalUserImage').src = user.profile_image || '/path/to/default-avatar.jpg';
+                    document.getElementById('modalUserName').textContent = user.name;
+                    document.getElementById('modalUserEmail').textContent = user.email;
+                    document.getElementById('modalUserId').textContent = user.id;
+                    document.getElementById('modalUserUuid').textContent = user.uuid;
+                    document.getElementById('modalUsername').textContent = user.username;
+                    document.getElementById('modalRegistrationDate').textContent = new Date(user.registration_date).toLocaleDateString();
+                    document.getElementById('modalLastLogin').textContent = new Date(user.last_login).toLocaleDateString();
+                    
+                    // Set user status with appropriate styling
+                    const statusElement = document.getElementById('modalUserStatus');
+                    statusElement.textContent = user.status;
+                    statusElement.className = 'inline-block py-1 px-2 rounded-full text-xs font-medium';
+                    
+                    switch (user.status) {
+                        case 'active':
+                            statusElement.classList.add('bg-green-900', 'text-green-300');
+                            break;
+                        case 'inactive':
+                            statusElement.classList.add('bg-yellow-900', 'text-yellow-300');
+                            break;
+                        case 'suspended':
+                            statusElement.classList.add('bg-red-900', 'text-red-300');
+                            break;
+                        default:
+                            statusElement.classList.add('bg-gray-900', 'text-gray-300');
+                    }
+                    
+                    // Set up restrict button
+                    document.getElementById('restrictUserBtn').setAttribute('data-user-id', user.id);
+                    
+                    // Handle subscription details
+                    const noSubMessage = document.getElementById('noSubscriptionMessage');
+                    const subDetails = document.getElementById('subscriptionDetails');
+                    
+                    if (user.subscription) {
+                        noSubMessage.classList.add('hidden');
+                        subDetails.classList.remove('hidden');
+                        
+                        document.getElementById('modalSubType').textContent = user.subscription.type;
+                        document.getElementById('modalSubAmount').textContent = `$${user.subscription.amount}`;
+                        document.getElementById('modalSubStartDate').textContent = new Date(user.subscription.start_date).toLocaleDateString();
+                        document.getElementById('modalSubExpiryDate').textContent = new Date(user.subscription.end_date).toLocaleDateString();
+                        
+                        const subStatusElement = document.getElementById('modalSubStatus');
+                        subStatusElement.textContent = user.subscription.status;
+                        subStatusElement.className = 'inline-block py-1 px-2 rounded-full text-xs font-medium';
+                        
+                        switch (user.subscription.status) {
+                            case 'active':
+                                subStatusElement.classList.add('bg-green-900', 'text-green-300');
+                                break;
+                            case 'expired':
+                                subStatusElement.classList.add('bg-red-900', 'text-red-300');
+                                break;
+                            case 'canceled':
+                                subStatusElement.classList.add('bg-yellow-900', 'text-yellow-300');
+                                break;
+                            default:
+                                subStatusElement.classList.add('bg-gray-900', 'text-gray-300');
+                        }
+                    } else {
+                        noSubMessage.classList.remove('hidden');
+                        subDetails.classList.add('hidden');
+                    }
+                    
+                    // Populate favorites
+                    populateFavorites('favoriteSports', user.favorites?.sports || []);
+                    populateFavorites('favoriteTeams', user.favorites?.teams || []);
+                    populateFavorites('favoritePlayers', user.favorites?.players || []);
+                    
+                    // Show modal
+                    document.getElementById('userDetailModal').classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error fetching user details:', error);
+                    alert(`Error fetching user details: ${error.message}`);
+                }
+            }
+
+            function populateFavorites(containerId, items) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<p class="text-gray-400">No favorites</p>';
+                    return;
+                }
+                
+                items.forEach(item => {
+                    const badge = document.createElement('div');
+                    badge.className = 'flex items-center bg-[#1A1225] rounded-full px-3 py-1';
+                    
+                    if (item.logo_url) {
+                        const img = document.createElement('img');
+                        img.src = item.logo_url;
+                        img.alt = item.name;
+                        img.className = 'w-4 h-4 mr-2 rounded-full object-cover';
+                        badge.appendChild(img);
+                    }
+                    
+                    const name = document.createElement('span');
+                    name.textContent = item.name;
+                    name.className = 'text-sm';
+                    badge.appendChild(name);
+                    
+                    container.appendChild(badge);
+                });
+            }
             
             const userName = localStorage.getItem('userName') || 'Admin User';
             const userNameElements = document.querySelectorAll('.user-name');

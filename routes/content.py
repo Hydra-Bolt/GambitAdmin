@@ -7,8 +7,8 @@ import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from sqlalchemy import desc, asc
-from models import db, FAQModel, ContentPageModel, faqs_data, content_pages_data, PermissionType
+from sqlalchemy import asc
+from models import db, FAQModel, ContentPageModel, PermissionType
 from utils.response_formatter import format_response, format_error
 from utils.auth import require_permission
 
